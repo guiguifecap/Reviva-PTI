@@ -20,8 +20,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: folhasMaterial 1
-  m_Shader: {fileID: 4800000, guid: 8bb439c706539d94b97219b87d31fc27, type: 3}
+  m_Name: folhasMaterial 4
+  m_Shader: {fileID: 4800000, guid: b752169cc32807149ad6aabbb81eb470, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -151,21 +151,17 @@ Material:
     - _Surface: 0
     - _TransitionVarFactor: 1
     - _TrivialNormalsFactor: 0.1
-    - _WindEnabled: 0
-    - _WindSpeed: 1
-    - _WindStrength: 0.1
     - _WorkflowMode: 1
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _DarkerShadowColor: {r: 0.16999996, g: 0.30899996, b: 0.21799996, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _HighlightColor: {r: 0.9, g: 0.95, b: 0.6, a: 1}
-    - _MainColor: {r: 0.34999996, g: 0.65, b: 0.14999998, a: 1}
+    - _HighlightColor: {r: 0.78039217, g: 0.8784314, b: 0.09803922, a: 1}
+    - _MainColor: {r: 0.52156866, g: 0.61960787, b: 0.078431375, a: 1}
     - _RelightShadowsColor: {r: 0, g: 0.34999996, b: 0.24999997, a: 1}
-    - _ShadowColor: {r: 0.049999982, g: 0.11999995, b: 0.03, a: 1}
+    - _ShadowColor: {r: 0.2, g: 0.25882354, b: 0.039215688, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
-    - _ZGradientColor: {r: 0.049999982, g: 0.24999997, b: 0.049999982, a: 1}
+    - _ZGradientColor: {r: 0.14117648, g: 0.18039216, b: 0.019607844, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
