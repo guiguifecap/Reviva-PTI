@@ -9,6 +9,12 @@ public class Degrais : MonoBehaviour
     public Transform posicaoFinal;
     public GameObject[] pedras;
 
+    [Header("Ponto de Descanso (repetições)")]
+    [Tooltip("Prefab do ponto de descanso, instanciado no lugar de uma pedra normal.")]
+    public GameObject pedraDescanso;
+    [Tooltip("A cada quantas pedras geradas deve aparecer um ponto de descanso.")]
+    public int pedrasPorDescanso = 5;
+
     [Header("Layer da Montanha")]
     public LayerMask layerMontanha;
 
@@ -17,6 +23,21 @@ public class Degrais : MonoBehaviour
 
     [Header("Distância do raycast")]
     public float distanciaRaycast = 20f;
+
+    [Header("Segurança")]
+    [Tooltip("Distância vertical mínima aceita entre pedras. Evita loop infinito se a dificuldade/alcance vierem zerados.")]
+    public float distanciaVerticalMinima = 0.05f;
+    [Tooltip("Número máximo de pedras que o gerador pode tentar criar, como trava de segurança.")]
+    public int maxPedras = 500;
+
+    // array de direções fixo, criado uma única vez (evita alocação repetida no loop)
+    static readonly Vector3[] Direcoes =
+    {
+        Vector3.forward,
+        Vector3.back,
+        Vector3.right,
+        Vector3.left
+    };
 
     void Awake()
     {
@@ -28,41 +49,22 @@ public class Degrais : MonoBehaviour
     // ─────────────────────────────────────────────
     public void GerarDegraus()
     {
-        // limpa antigas
-        foreach (Transform child in transform)
-            Destroy(child.gameObject);
+        LimparFilhos();
 
         if (posicaoComeco == null || posicaoFinal == null)
         {
-            Debug.LogError("Posições não configuradas.");
+            Debug.LogError("[Degrais] Posições não configuradas.");
             return;
         }
 
-        // alcance calibrado
-        float alcanceCM = GameSettings.Instance.alcanceMaximoCM;
-
-        if (GameSettings.Instance.usarMetadeDoAlcance)
+        if (pedras == null || pedras.Length == 0)
         {
-            alcanceCM *= 0.5f;
+            Debug.LogError("[Degrais] Array 'pedras' está vazio.");
+            return;
         }
 
-        if (alcanceCM <= 0f)
-            alcanceCM = 130f;
-
-        // dificuldade agora é percentual direto
-        float percentual = GameSettings.Instance.difficulty;
-
-        // cm → metros
-        float alcanceMetros = alcanceCM / 100f;
-
-        // distância entre pedras
-        float distanciaVertical = alcanceMetros * percentual;
-
-        Debug.Log(
-            $"[Degrais] Alcance={alcanceCM:F1}cm  " +
-            $"Dificuldade={percentual * 100f:F0}%  " +
-            $"Distância={distanciaVertical:F2}m"
-        );
+        if (!TentarObterDistanciaVertical(out float distanciaVertical))
+            return;
 
         float y = posicaoComeco.position.y;
         float alturaFinal = posicaoFinal.position.y;
@@ -71,9 +73,14 @@ public class Degrais : MonoBehaviour
         float centroZ = posicaoComeco.position.z;
 
         int index = 0;
+        int contadorDesdeDescanso = 0;
+        int seguranca = 0;
 
-        while (y < alturaFinal)
+        // 'seguranca' garante que o loop termina mesmo que algo
+        // inesperado aconteça com 'y' ou 'alturaFinal'
+        while (y < alturaFinal && seguranca < maxPedras)
         {
+            seguranca++;
             y += distanciaVertical;
 
             if (y > alturaFinal)
@@ -86,69 +93,123 @@ public class Degrais : MonoBehaviour
 
             Vector3 centroBusca = new Vector3(x, y, centroZ);
 
-            bool encontrou = false;
-            RaycastHit hit = new RaycastHit();
+            if (!TentarEncontrarSuperficie(centroBusca, out RaycastHit hit))
+                continue;
 
-            // ─────────────────────────────────────────────
-            // RAYCASTS 4 DIREÇÕES
-            // ─────────────────────────────────────────────
+            Vector3 posicaoPedra = hit.point + hit.normal * 0.03f;
+            Quaternion rot = Quaternion.LookRotation(-hit.normal);
 
-            Vector3[] direcoes =
-            {
-                Vector3.forward,
-                Vector3.back,
-                Vector3.right,
-                Vector3.left
-            };
+            contadorDesdeDescanso++;
 
-            foreach (Vector3 dir in direcoes)
-            {
-                Vector3 origem = centroBusca - dir * 5f;
+            bool ehPontoDeDescanso =
+                pedraDescanso != null &&
+                pedrasPorDescanso > 0 &&
+                contadorDesdeDescanso >= pedrasPorDescanso;
 
-                if (Physics.Raycast(
-                    origem,
-                    dir,
-                    out hit,
-                    distanciaRaycast,
-                    layerMontanha
-                ))
-                {
-                    encontrou = true;
-                    break;
-                }
-            }
+            GameObject prefabEscolhido = ehPontoDeDescanso
+                ? pedraDescanso
+                : pedras[Random.Range(0, pedras.Length)];
 
-            // ─────────────────────────────────────────────
-            // SE ACHOU SUPERFÍCIE
-            // ─────────────────────────────────────────────
+            Instantiate(prefabEscolhido, posicaoPedra, rot, transform);
 
-            if (encontrou)
-            {
-                Vector3 posicaoPedra = hit.point;
+            if (ehPontoDeDescanso)
+                contadorDesdeDescanso = 0;
 
-                // empurra levemente pra fora
-                posicaoPedra += hit.normal * 0.03f;
+            index++;
+        }
 
-                // rotação alinhada na parede
-                Quaternion rot =
-                    Quaternion.LookRotation(-hit.normal);
-
-                if (pedras.Length == 0) return;
-
-                GameObject pedraEscolhida = pedras[Random.Range(0, pedras.Length)];
-
-                Instantiate(
-                    pedraEscolhida,
-                    posicaoPedra,
-                    rot,
-                    transform
-                );
-
-                index++;
-            }
+        if (seguranca >= maxPedras)
+        {
+            Debug.LogWarning(
+                "[Degrais] Geração interrompida pelo limite de segurança " +
+                $"({maxPedras} pedras). Verifique 'distanciaVertical', " +
+                "'posicaoComeco' e 'posicaoFinal'."
+            );
         }
 
         Debug.Log($"[Degrais] {index} pedras geradas.");
+    }
+
+    // ─────────────────────────────────────────────
+    // LIMPA FILHOS (funciona em Play Mode e no Editor)
+    // ─────────────────────────────────────────────
+    void LimparFilhos()
+    {
+        for (int i = transform.childCount - 1; i >= 0; i--)
+        {
+            Transform child = transform.GetChild(i);
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                DestroyImmediate(child.gameObject);
+                continue;
+            }
+#endif
+            Destroy(child.gameObject);
+        }
+    }
+
+    // ─────────────────────────────────────────────
+    // CALCULA E VALIDA A DISTÂNCIA VERTICAL
+    // ─────────────────────────────────────────────
+    bool TentarObterDistanciaVertical(out float distanciaVertical)
+    {
+        distanciaVertical = 0f;
+
+        if (GameSettings.Instance == null)
+        {
+            Debug.LogError("[Degrais] GameSettings.Instance é nulo. Abortando geração.");
+            return false;
+        }
+
+        float alcanceCM = GameSettings.Instance.alcanceMaximoCM;
+
+        if (GameSettings.Instance.usarMetadeDoAlcance)
+            alcanceCM *= 0.5f;
+
+        if (alcanceCM <= 0f)
+            alcanceCM = 130f;
+
+        float percentual = GameSettings.Instance.difficulty;
+        float alcanceMetros = alcanceCM / 100f;
+
+        distanciaVertical = alcanceMetros * percentual;
+
+        Debug.Log(
+            $"[Degrais] Alcance={alcanceCM:F1}cm  " +
+            $"Dificuldade={percentual * 100f:F0}%  " +
+            $"Distância={distanciaVertical:F2}m"
+        );
+
+        if (distanciaVertical < distanciaVerticalMinima)
+        {
+            Debug.LogError(
+                $"[Degrais] Distância vertical calculada ({distanciaVertical:F3}m) é menor que o " +
+                $"mínimo permitido ({distanciaVerticalMinima:F3}m). Isso causaria um loop infinito, " +
+                "então a geração foi cancelada. Verifique 'difficulty' e 'alcanceMaximoCM' em GameSettings."
+            );
+            return false;
+        }
+
+        return true;
+    }
+
+    // ─────────────────────────────────────────────
+    // RAYCASTS 4 DIREÇÕES
+    // ─────────────────────────────────────────────
+    bool TentarEncontrarSuperficie(Vector3 centroBusca, out RaycastHit hit)
+    {
+        hit = new RaycastHit();
+
+        foreach (Vector3 dir in Direcoes)
+        {
+            Vector3 origem = centroBusca - dir * 5f;
+
+            if (Physics.Raycast(origem, dir, out hit, distanciaRaycast, layerMontanha))
+                return true;
+        }
+
+        return false;
     }
 
     // ─────────────────────────────────────────────
@@ -159,18 +220,21 @@ public class Degrais : MonoBehaviour
         if (posicaoComeco == null || posicaoFinal == null)
             return;
 
-        Gizmos.color = Color.green;
+        float alcanceCM = 130f;
+        float percentual = 0.8f;
 
-        float alcanceCM = Application.isPlaying
-            ? GameSettings.Instance.alcanceMaximoCM
-            : 130f;
+        if (Application.isPlaying && GameSettings.Instance != null)
+        {
+            alcanceCM = GameSettings.Instance.alcanceMaximoCM;
+            percentual = GameSettings.Instance.difficulty;
+        }
 
-        float percentual = Application.isPlaying
-            ? GameSettings.Instance.difficulty
-            : 0.8f;
+        float distanciaVertical = (alcanceCM / 100f) * percentual;
 
-        float distanciaVertical =
-            (alcanceCM / 100f) * percentual;
+        // mesma trava de segurança do modo de jogo: se a distância for
+        // inválida, não tenta desenhar (evitaria travar o Editor)
+        if (distanciaVertical < distanciaVerticalMinima)
+            return;
 
         float y = posicaoComeco.position.y;
         float alturaFinal = posicaoFinal.position.y;
@@ -179,9 +243,12 @@ public class Degrais : MonoBehaviour
         float centroZ = posicaoComeco.position.z;
 
         int index = 0;
+        int contadorDesdeDescanso = 0;
+        int seguranca = 0;
 
-        while (y < alturaFinal)
+        while (y < alturaFinal && seguranca < maxPedras)
         {
+            seguranca++;
             y += distanciaVertical;
 
             if (y > alturaFinal)
@@ -193,7 +260,16 @@ public class Degrais : MonoBehaviour
 
             Vector3 p = new Vector3(x, y, centroZ);
 
-            Gizmos.DrawWireSphere(p, 0.08f);
+            contadorDesdeDescanso++;
+            bool ehPontoDeDescanso =
+                pedrasPorDescanso > 0 &&
+                contadorDesdeDescanso >= pedrasPorDescanso;
+
+            Gizmos.color = ehPontoDeDescanso ? Color.yellow : Color.green;
+            Gizmos.DrawWireSphere(p, ehPontoDeDescanso ? 0.12f : 0.08f);
+
+            if (ehPontoDeDescanso)
+                contadorDesdeDescanso = 0;
 
             index++;
         }
