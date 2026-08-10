@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6638518264494810709}
   - component: {fileID: 2960719613456109173}
   - component: {fileID: 2118432312246036033}
+  - component: {fileID: 5993994401249252552}
   m_Layer: 0
   m_Name: ponto de descanso
   m_TagString: Untagged
@@ -108,3 +109,19 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.7212306, y: 0.4069381, z: 1.2449571}
   m_Center: {x: -0.0977549, y: 0.29653093, z: -0.031852666}
+--- !u!114 &5993994401249252552
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6004509665608517992}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67f2cb05d507f1248aed2afe01839f00, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tagPlayer: Player
+  playerManual: {fileID: 0}
+  margemSuperior: 0.05
+  considerarVelocidadeVertical: 1
