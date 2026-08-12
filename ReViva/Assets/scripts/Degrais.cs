@@ -9,11 +9,15 @@ public class Degrais : MonoBehaviour
     public Transform posicaoFinal;
     public GameObject[] pedras;
 
-    [Header("Ponto de Descanso (repetições)")]
+    [Header("Séries (repetições)")]
     [Tooltip("Prefab do ponto de descanso, instanciado no lugar de uma pedra normal.")]
     public GameObject pedraDescanso;
-    [Tooltip("A cada quantas pedras geradas deve aparecer um ponto de descanso.")]
+    [Tooltip("A cada quantas pedras geradas aparece um ponto de descanso (fim de uma série).")]
     public int pedrasPorDescanso = 5;
+    [Tooltip("Quantidade total de séries. Ao completar a última série, o ponto de descanso vira a plataforma final e a geração termina ali.")]
+    public int numeroDeSeries = 3;
+    [Tooltip("Prefab da plataforma final. Se ficar vazio, usa o próprio 'Pedra Descanso' na última série.")]
+    public GameObject plataformaFinal;
 
     [Header("Layer da Montanha")]
     public LayerMask layerMontanha;
@@ -63,6 +67,12 @@ public class Degrais : MonoBehaviour
             return;
         }
 
+        if (numeroDeSeries <= 0)
+        {
+            Debug.LogError("[Degrais] 'Numero De Series' precisa ser maior que zero.");
+            return;
+        }
+
         if (!TentarObterDistanciaVertical(out float distanciaVertical))
             return;
 
@@ -74,7 +84,9 @@ public class Degrais : MonoBehaviour
 
         int index = 0;
         int contadorDesdeDescanso = 0;
+        int serieAtual = 0;
         int seguranca = 0;
+        bool plataformaFinalGerada = false;
 
         // 'seguranca' garante que o loop termina mesmo que algo
         // inesperado aconteça com 'y' ou 'alturaFinal'
@@ -100,22 +112,54 @@ public class Degrais : MonoBehaviour
             Quaternion rot = Quaternion.LookRotation(-hit.normal);
 
             contadorDesdeDescanso++;
+            int numeroNestaPedra = contadorDesdeDescanso; // posição desta pedra dentro da série atual (1-indexed)
 
             bool ehPontoDeDescanso =
                 pedraDescanso != null &&
                 pedrasPorDescanso > 0 &&
                 contadorDesdeDescanso >= pedrasPorDescanso;
 
-            GameObject prefabEscolhido = ehPontoDeDescanso
-                ? pedraDescanso
-                : pedras[Random.Range(0, pedras.Length)];
-
-            Instantiate(prefabEscolhido, posicaoPedra, rot, transform);
+            GameObject prefabEscolhido;
 
             if (ehPontoDeDescanso)
-                contadorDesdeDescanso = 0;
+            {
+                serieAtual++;
+                bool ehUltimaSerie = serieAtual >= numeroDeSeries;
 
+                if (ehUltimaSerie)
+                {
+                    // última série: vira a plataforma final
+                    prefabEscolhido = plataformaFinal != null ? plataformaFinal : pedraDescanso;
+                    plataformaFinalGerada = true;
+                }
+                else
+                {
+                    prefabEscolhido = pedraDescanso;
+                }
+
+                contadorDesdeDescanso = 0;
+            }
+            else
+            {
+                prefabEscolhido = pedras[Random.Range(0, pedras.Length)];
+            }
+
+            GameObject instancia = Instantiate(prefabEscolhido, posicaoPedra, rot, transform);
+            ConfigurarProgresso(instancia, numeroNestaPedra, pedrasPorDescanso, ehPontoDeDescanso);
             index++;
+
+            // ao gerar a plataforma final, a geração termina imediatamente
+            if (plataformaFinalGerada)
+                break;
+        }
+
+        if (!plataformaFinalGerada)
+        {
+            Debug.LogWarning(
+                $"[Degrais] A geração terminou (altura ou limite de segurança) antes de completar " +
+                $"as {numeroDeSeries} séries pedidas. Séries completas: {serieAtual}. " +
+                "Ajuste 'numeroDeSeries', 'pedrasPorDescanso' ou a distância entre 'posicaoComeco' e 'posicaoFinal'."
+            );
         }
 
         if (seguranca >= maxPedras)
@@ -127,7 +171,21 @@ public class Degrais : MonoBehaviour
             );
         }
 
-        Debug.Log($"[Degrais] {index} pedras geradas.");
+        Debug.Log($"[Degrais] {index} pedras geradas em {serieAtual} série(s).");
+    }
+
+    // ─────────────────────────────────────────────
+    // CONFIGURA O COMPONENTE DE PROGRESSO (UI "1/15")
+    // ─────────────────────────────────────────────
+    void ConfigurarProgresso(GameObject instancia, int numeroNaSerie, int totalNaSerie, bool ehDescanso)
+    {
+        PedraProgresso progresso = instancia.GetComponent<PedraProgresso>();
+        if (progresso == null)
+            progresso = instancia.AddComponent<PedraProgresso>();
+
+        progresso.numeroNaSerie = numeroNaSerie;
+        progresso.totalNaSerie = totalNaSerie;
+        progresso.ehPontoDeDescanso = ehDescanso;
     }
 
     // ─────────────────────────────────────────────
@@ -244,6 +302,7 @@ public class Degrais : MonoBehaviour
 
         int index = 0;
         int contadorDesdeDescanso = 0;
+        int serieAtual = 0;
         int seguranca = 0;
 
         while (y < alturaFinal && seguranca < maxPedras)
@@ -265,13 +324,29 @@ public class Degrais : MonoBehaviour
                 pedrasPorDescanso > 0 &&
                 contadorDesdeDescanso >= pedrasPorDescanso;
 
-            Gizmos.color = ehPontoDeDescanso ? Color.yellow : Color.green;
-            Gizmos.DrawWireSphere(p, ehPontoDeDescanso ? 0.12f : 0.08f);
+            bool ehUltimaSerie = false;
 
             if (ehPontoDeDescanso)
+            {
+                serieAtual++;
+                ehUltimaSerie = numeroDeSeries > 0 && serieAtual >= numeroDeSeries;
                 contadorDesdeDescanso = 0;
+            }
+
+            if (ehUltimaSerie)
+                Gizmos.color = Color.red;
+            else if (ehPontoDeDescanso)
+                Gizmos.color = Color.yellow;
+            else
+                Gizmos.color = Color.green;
+
+            float raio = ehUltimaSerie ? 0.16f : (ehPontoDeDescanso ? 0.12f : 0.08f);
+            Gizmos.DrawWireSphere(p, raio);
 
             index++;
+
+            if (ehUltimaSerie)
+                break;
         }
     }
 }
