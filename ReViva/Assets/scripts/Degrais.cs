@@ -109,7 +109,7 @@ public class Degrais : MonoBehaviour
                 continue;
 
             Vector3 posicaoPedra = hit.point + hit.normal * 0.03f;
-            Quaternion rot = Quaternion.LookRotation(-hit.normal);
+            Quaternion rotSuperficie = Quaternion.LookRotation(-hit.normal);
 
             contadorDesdeDescanso++;
             int numeroNestaPedra = contadorDesdeDescanso; // posição desta pedra dentro da série atual (1-indexed)
@@ -144,7 +144,14 @@ public class Degrais : MonoBehaviour
                 prefabEscolhido = pedras[Random.Range(0, pedras.Length)];
             }
 
-            GameObject instancia = Instantiate(prefabEscolhido, posicaoPedra, rot, transform);
+            // Pontos de descanso e a plataforma final mantêm a rotação original
+            // definida no próprio prefab, ignorando a normal da superfície.
+            // As pedras normais continuam se alinhando à montanha via raycast.
+            Quaternion rotFinal = ehPontoDeDescanso
+                ? prefabEscolhido.transform.rotation
+                : rotSuperficie;
+
+            GameObject instancia = Instantiate(prefabEscolhido, posicaoPedra, rotFinal, transform);
             ConfigurarProgresso(instancia, numeroNestaPedra, pedrasPorDescanso, ehPontoDeDescanso);
             index++;
 
