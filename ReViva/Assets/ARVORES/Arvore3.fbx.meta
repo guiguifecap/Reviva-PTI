@@ -8,7 +8,7 @@ ModelImporter:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: leaves01
-    second: {fileID: 2100000, guid: 1bc0c38d35803f645a8602223b70a85f, type: 2}
+    second: {fileID: 2100000, guid: 2d9594e48ac1b694e97a440f805a9ffe, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule

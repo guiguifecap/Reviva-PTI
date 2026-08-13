@@ -1,5 +1,18 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-8651240333965871161
+MonoBehaviour:
+  m_ObjectHideFlags: 11
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  version: 9
 --- !u!21 &2100000
 Material:
   serializedVersion: 8
@@ -7,8 +20,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: M_Folha_Teal
-  m_Shader: {fileID: 4800000, guid: 6bd7e3b7db21def47941b44bdd8dcc31, type: 3}
+  m_Name: M_Folha_Verde_10
+  m_Shader: {fileID: 4800000, guid: 6458d4a0f2a5a6b41b5cb9101f9651c6, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -90,6 +103,7 @@ Material:
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
     - _BumpScale: 1
+    - _CanopyCenterHeight: 1.5
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _ColorVariation: 0.3
@@ -101,6 +115,7 @@ Material:
     - _DstBlend: 0
     - _DstBlendAlpha: 0
     - _EnvironmentReflections: 1
+    - _FakeNormalBlend: 0.85
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
@@ -128,23 +143,10 @@ Material:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _HighlightColor: {r: 0.39999998, g: 0.92, b: 0.54999995, a: 1}
-    - _MainColor: {r: 0.11999995, g: 0.62, b: 0.41999996, a: 1}
-    - _ShadowColor: {r: 0.02, g: 0.17999998, b: 0.27999997, a: 1}
+    - _HighlightColor: {r: 0.54999995, g: 0.85, b: 0.19999996, a: 1}
+    - _MainColor: {r: 0.17999998, g: 0.62, b: 0.24999997, a: 1}
+    - _ShadowColor: {r: 0.049999982, g: 0.21999997, b: 0.17999998, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
-    - _ZGradientColor: {r: 0.02, g: 0.079999976, b: 0.21999997, a: 1}
+    - _ZGradientColor: {r: 0.04, g: 0.17999998, b: 0.13999996, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
---- !u!114 &3946776773169780399
-MonoBehaviour:
-  m_ObjectHideFlags: 11
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  version: 9

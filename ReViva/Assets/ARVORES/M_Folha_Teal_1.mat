@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: New_Teal
+  m_Name: M_Folha_Teal_1
   m_Shader: {fileID: 4800000, guid: f4e79230b4c999b4e8382a372cb9503c, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0

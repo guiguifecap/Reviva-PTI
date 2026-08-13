@@ -20,7 +20,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: New_Green
+  m_Name: M_Folha_Verde_7
   m_Shader: {fileID: 4800000, guid: 6458d4a0f2a5a6b41b5cb9101f9651c6, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
