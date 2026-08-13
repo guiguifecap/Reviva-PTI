@@ -13,9 +13,9 @@ public class Degrais : MonoBehaviour
     [Tooltip("Prefab do ponto de descanso, instanciado no lugar de uma pedra normal.")]
     public GameObject pedraDescanso;
     [Tooltip("A cada quantas pedras geradas aparece um ponto de descanso (fim de uma série).")]
-    public int pedrasPorDescanso = 5;
+    public int pedrasPorDescanso;
     [Tooltip("Quantidade total de séries. Ao completar a última série, o ponto de descanso vira a plataforma final e a geração termina ali.")]
-    public int numeroDeSeries = 3;
+    public int numeroDeSeries;
     [Tooltip("Prefab da plataforma final. Se ficar vazio, usa o próprio 'Pedra Descanso' na última série.")]
     public GameObject plataformaFinal;
 
