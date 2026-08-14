@@ -10,10 +10,14 @@ public class MenuUI_Jogo : MonoBehaviour
     public TextMeshProUGUI difficultyText;
 
     [Header("Configuração de Séries (Repetições)")]
-    [Tooltip("Input field para definir o número de séries (Degrais.numeroDeSeries).")]
+    [Tooltip("Input field para definir o número de séries. É a ÚNICA fonte desse valor — o Degrais nunca decide isso sozinho.")]
     public TMP_InputField inputNumeroDeSeries;
-    [Tooltip("Input field para definir quantas pedras por série (Degrais.pedrasPorDescanso).")]
+    [Tooltip("Input field para definir quantas pedras por série. É a ÚNICA fonte desse valor — o Degrais nunca decide isso sozinho.")]
     public TMP_InputField inputPedrasPorDescanso;
+    [Tooltip("Valor usado no campo 'Número de Séries' caso ele esteja vazio na primeira vez que o jogo abre.")]
+    public int padraoNumeroDeSeries = 3;
+    [Tooltip("Valor usado no campo 'Pedras Por Descanso' caso ele esteja vazio na primeira vez que o jogo abre.")]
+    public int padraoPedrasPorDescanso = 5;
 
     [Header("Componentes do Jogo")]
     public Degrais degrais;
@@ -51,10 +55,10 @@ public class MenuUI_Jogo : MonoBehaviour
             difficultySlider.minValue = 0.4f;
             difficultySlider.maxValue = 1f;
             difficultySlider.wholeNumbers = false;
-            difficultySlider.value = 0.7f; // <-- isso agora sempre executa
+            difficultySlider.value = 0.7f;
         }
 
-        AtualizarTextoDificuldade(); // <-- idem
+        AtualizarTextoDificuldade();
 
         if (GameSettings.Instance != null)
             GameSettings.Instance.difficulty = 0.7f;
@@ -78,23 +82,34 @@ public class MenuUI_Jogo : MonoBehaviour
         if (degrais == null)
             degrais = FindObjectOfType<Degrais>();
 
-        // Registra callback de calibração
-        if (goniometria != null)
-            goniometria.OnCalibracaoConcluida += RegenerarDegraus;
-        else
-            Debug.LogWarning("[MenuUI] GoniometriaClimb não encontrada na cena!");
-
         if (degrais == null)
             Debug.LogWarning("[MenuUI] Degrais não encontrado na cena!");
         else if (Degrais.Instance != null && Degrais.Instance != degrais)
             Debug.LogWarning(
                 "[MenuUI] O 'degrais' referenciado neste MenuUI é diferente de Degrais.Instance! " +
-                "Isso indica que existe mais de um Degrais na cena. Os inputs de série vão atualizar " +
-                "um objeto, mas a geração real pode estar usando o outro (ex: via Degrais.Instance " +
-                "em OnToggleAlcance). Verifique se há Degrais duplicado na Hierarchy."
+                "Existe mais de um Degrais na cena — verifique a Hierarchy."
             );
 
+        // ── PASSO CRÍTICO: entrega as MESMAS referências de Input Field para o
+        // Degrais, para que GerarDegraus() sempre leia o valor direto da UI,
+        // não importa quem chamou a geração nem em que ordem os scripts rodaram.
+        if (degrais != null)
+        {
+            degrais.inputNumeroDeSeries = inputNumeroDeSeries;
+            degrais.inputPedrasPorDescanso = inputPedrasPorDescanso;
+        }
+
+        // ── PASSO CRÍTICO: aplica os valores dos Input Fields no Degrais
+        // ANTES de registrar a calibração e antes de qualquer pedra existir.
+        // A partir daqui, pedrasPorDescanso/numeroDeSeries só mudam através
+        // desses campos — nunca através do Inspector do Degrais.
         ConfigurarInputsDeSerie();
+
+        // Registra callback de calibração (só depois dos valores de série já aplicados)
+        if (goniometria != null)
+            goniometria.OnCalibracaoConcluida += RegenerarDegraus;
+        else
+            Debug.LogWarning("[MenuUI] GoniometriaClimb não encontrada na cena!");
     }
 
     void Update()
@@ -106,7 +121,6 @@ public class MenuUI_Jogo : MonoBehaviour
 
     void OnDestroy()
     {
-        // Boa prática: desregistrar o evento ao destruir o objeto
         if (goniometria != null)
             goniometria.OnCalibracaoConcluida -= RegenerarDegraus;
     }
@@ -162,12 +176,15 @@ public class MenuUI_Jogo : MonoBehaviour
 
     void AtualizarTextoDificuldade()
     {
-        if (difficultyText == null) return; // evita NullRef se não assignado
+        if (difficultyText == null) return;
         int porcentagem = Mathf.RoundToInt(difficultySlider != null ? difficultySlider.value * 100f : 70f);
         difficultyText.text = $"Dificuldade: {porcentagem}%";
     }
 
     // ── Séries (Numero De Series / Pedras Por Descanso) ──────
+    // Estes dois campos são a ÚNICA fonte de verdade para o Degrais.
+    // O Inspector do Degrais só serve como fallback de emergência.
+
     void ConfigurarInputsDeSerie()
     {
         if (degrais == null)
@@ -176,82 +193,76 @@ public class MenuUI_Jogo : MonoBehaviour
             return;
         }
 
-        // preenche os campos com o valor atual configurado no Degrais
+        if (inputNumeroDeSeries == null)
+            Debug.LogWarning("[MenuUI] 'inputNumeroDeSeries' não foi arrastado no Inspector do MenuUI_Jogo.");
+
+        if (inputPedrasPorDescanso == null)
+            Debug.LogWarning("[MenuUI] 'inputPedrasPorDescanso' não foi arrastado no Inspector do MenuUI_Jogo.");
+
+        // se os campos estiverem vazios (primeira vez que o jogo abre), preenche com o padrão
+        if (inputNumeroDeSeries != null && string.IsNullOrWhiteSpace(inputNumeroDeSeries.text))
+            inputNumeroDeSeries.text = padraoNumeroDeSeries.ToString();
+
+        if (inputPedrasPorDescanso != null && string.IsNullOrWhiteSpace(inputPedrasPorDescanso.text))
+            inputPedrasPorDescanso.text = padraoPedrasPorDescanso.ToString();
+
+        // registra os listeners para futuras edições
+        if (inputNumeroDeSeries != null)
+            inputNumeroDeSeries.onEndEdit.AddListener(_ => AplicarValoresDosInputsNoDegrais(regenerarDepois: true));
+
+        if (inputPedrasPorDescanso != null)
+            inputPedrasPorDescanso.onEndEdit.AddListener(_ => AplicarValoresDosInputsNoDegrais(regenerarDepois: true));
+
+        // aplica o valor inicial dos campos no Degrais AGORA, antes de qualquer
+        // calibração ou geração de pedras
+        AplicarValoresDosInputsNoDegrais(regenerarDepois: false);
+    }
+
+    /// <summary>
+    /// Lê o texto atual dos dois Input Fields, valida, e envia para Degrais.ConfigurarSeries().
+    /// Se algum campo estiver com valor inválido, ele é revertido para o último valor válido conhecido.
+    /// </summary>
+    void AplicarValoresDosInputsNoDegrais(bool regenerarDepois)
+    {
+        if (degrais == null) return;
+
+        int numeroDeSeriesValido = degrais.NumeroDeSeries > 0 ? degrais.NumeroDeSeries : padraoNumeroDeSeries;
+        int pedrasPorDescansoValido = degrais.PedrasPorDescanso > 0 ? degrais.PedrasPorDescanso : padraoPedrasPorDescanso;
+
+        bool ok = true;
+
         if (inputNumeroDeSeries != null)
         {
-            inputNumeroDeSeries.text = degrais.numeroDeSeries.ToString();
-            inputNumeroDeSeries.onEndEdit.AddListener(OnInputNumeroDeSeriesChanged);
-            Debug.Log("[MenuUI] Listener de 'Numero De Series' registrado.");
-        }
-        else
-        {
-            Debug.LogWarning("[MenuUI] 'inputNumeroDeSeries' não foi arrastado no Inspector do MenuUI_Jogo.");
+            if (int.TryParse(inputNumeroDeSeries.text, out int n) && n > 0)
+            {
+                numeroDeSeriesValido = n;
+            }
+            else
+            {
+                Debug.LogWarning("[MenuUI] Valor inválido em 'Número de Séries'. Revertendo para o último válido.");
+                inputNumeroDeSeries.text = numeroDeSeriesValido.ToString();
+                ok = false;
+            }
         }
 
         if (inputPedrasPorDescanso != null)
         {
-            inputPedrasPorDescanso.text = degrais.pedrasPorDescanso.ToString();
-            inputPedrasPorDescanso.onEndEdit.AddListener(OnInputPedrasPorDescansoChanged);
-            Debug.Log("[MenuUI] Listener de 'Pedras Por Descanso' registrado.");
-        }
-        else
-        {
-            Debug.LogWarning("[MenuUI] 'inputPedrasPorDescanso' não foi arrastado no Inspector do MenuUI_Jogo.");
-        }
-    }
-
-    public void OnInputNumeroDeSeriesChanged(string valor)
-    {
-        Debug.Log($"[MenuUI] OnInputNumeroDeSeriesChanged recebeu: '{valor}'");
-
-        if (degrais == null)
-        {
-            Debug.LogWarning("[MenuUI] 'degrais' é null, não é possível aplicar o valor.");
-            return;
+            if (int.TryParse(inputPedrasPorDescanso.text, out int p) && p > 0)
+            {
+                pedrasPorDescansoValido = p;
+            }
+            else
+            {
+                Debug.LogWarning("[MenuUI] Valor inválido em 'Pedras Por Descanso'. Revertendo para o último válido.");
+                inputPedrasPorDescanso.text = pedrasPorDescansoValido.ToString();
+                ok = false;
+            }
         }
 
-        if (int.TryParse(valor, out int numero) && numero > 0)
-        {
-            degrais.numeroDeSeries = numero;
-            Debug.Log($"[MenuUI] degrais.numeroDeSeries agora é {degrais.numeroDeSeries}");
+        degrais.ConfigurarSeries(pedrasPorDescansoValido, numeroDeSeriesValido);
 
-            // regenera sempre, independente de já estar calibrado ou não
+        if (regenerarDepois && ok)
             RegenerarDegraus();
-        }
-        else
-        {
-            Debug.LogWarning("[MenuUI] Valor inválido para 'Número de Séries'. Use um número inteiro maior que zero.");
-            // reverte o campo para o valor válido atual
-            if (inputNumeroDeSeries != null)
-                inputNumeroDeSeries.text = degrais.numeroDeSeries.ToString();
-        }
-    }
-
-    public void OnInputPedrasPorDescansoChanged(string valor)
-    {
-        Debug.Log($"[MenuUI] OnInputPedrasPorDescansoChanged recebeu: '{valor}'");
-
-        if (degrais == null)
-        {
-            Debug.LogWarning("[MenuUI] 'degrais' é null, não é possível aplicar o valor.");
-            return;
-        }
-
-        if (int.TryParse(valor, out int numero) && numero > 0)
-        {
-            degrais.pedrasPorDescanso = numero;
-            Debug.Log($"[MenuUI] degrais.pedrasPorDescanso agora é {degrais.pedrasPorDescanso}");
-
-            // regenera sempre, independente de já estar calibrado ou não
-            RegenerarDegraus();
-        }
-        else
-        {
-            Debug.LogWarning("[MenuUI] Valor inválido para 'Pedras Por Descanso'. Use um número inteiro maior que zero.");
-            // reverte o campo para o valor válido atual
-            if (inputPedrasPorDescanso != null)
-                inputPedrasPorDescanso.text = degrais.pedrasPorDescanso.ToString();
-        }
     }
 
     // ── Degraus ─────────────────────────────────────────────

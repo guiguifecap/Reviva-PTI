@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using TMPro;
 
 public class Degrais : MonoBehaviour
 {
@@ -12,12 +13,36 @@ public class Degrais : MonoBehaviour
     [Header("Séries (repetições)")]
     [Tooltip("Prefab do ponto de descanso, instanciado no lugar de uma pedra normal.")]
     public GameObject pedraDescanso;
-    [Tooltip("A cada quantas pedras geradas aparece um ponto de descanso (fim de uma série).")]
-    public int pedrasPorDescanso;
-    [Tooltip("Quantidade total de séries. Ao completar a última série, o ponto de descanso vira a plataforma final e a geração termina ali.")]
-    public int numeroDeSeries;
+
     [Tooltip("Prefab da plataforma final. Se ficar vazio, usa o próprio 'Pedra Descanso' na última série.")]
     public GameObject plataformaFinal;
+
+    // ─────────────────────────────────────────────
+    // NÃO SERIALIZADOS DE PROPÓSITO: não aparecem no Inspector,
+    // então não têm como alguém digitar um valor direto aqui por engano.
+    // A ÚNICA forma de alterar esses dois valores é via ConfigurarSeries(),
+    // chamado pelo MenuUI_Jogo a partir dos Input Fields.
+    // ─────────────────────────────────────────────
+    private int pedrasPorDescanso = 5;
+    private int numeroDeSeries = 3;
+
+    /// <summary>Somente leitura. Para alterar, use ConfigurarSeries().</summary>
+    public int PedrasPorDescanso => pedrasPorDescanso;
+    /// <summary>Somente leitura. Para alterar, use ConfigurarSeries().</summary>
+    public int NumeroDeSeries => numeroDeSeries;
+
+    [Header("Input Fields do Menu (FONTE ÚNICA DE VERDADE)")]
+    [Tooltip(
+        "Arraste aqui o MESMO Input Field usado no menu do médico para 'Número de Séries'. " +
+        "Se preenchido, GerarDegraus() SEMPRE lê o valor direto daqui antes de gerar — " +
+        "não importa quem chamou GerarDegraus() ou em que ordem os scripts rodaram."
+    )]
+    public TMP_InputField inputNumeroDeSeries;
+    [Tooltip(
+        "Arraste aqui o MESMO Input Field usado no menu do médico para 'Pedras Por Descanso'. " +
+        "Se preenchido, GerarDegraus() SEMPRE lê o valor direto daqui antes de gerar."
+    )]
+    public TMP_InputField inputPedrasPorDescanso;
 
     [Header("Layer da Montanha")]
     public LayerMask layerMontanha;
@@ -34,6 +59,9 @@ public class Degrais : MonoBehaviour
     [Tooltip("Número máximo de pedras que o gerador pode tentar criar, como trava de segurança.")]
     public int maxPedras = 500;
 
+    // true assim que o MenuUI_Jogo chamar ConfigurarSeries() pelo menos uma vez
+    [HideInInspector] public bool configuradoPeloMenu = false;
+
     // array de direções fixo, criado uma única vez (evita alocação repetida no loop)
     static readonly Vector3[] Direcoes =
     {
@@ -49,10 +77,102 @@ public class Degrais : MonoBehaviour
     }
 
     // ─────────────────────────────────────────────
+    // LÊ OS INPUT FIELDS DIRETAMENTE (fonte única de verdade).
+    // Chamado no início de TODA chamada a GerarDegraus(), então não importa
+    // quem chamou GerarDegraus() nem em que ordem os Start() rodaram —
+    // o valor usado é sempre o que está escrito no campo NESTE momento.
+    // ─────────────────────────────────────────────
+    void LerValoresDosInputFields()
+    {
+        if (inputNumeroDeSeries != null)
+        {
+            if (int.TryParse(inputNumeroDeSeries.text, out int n) && n > 0)
+            {
+                numeroDeSeries = n;
+            }
+            else
+            {
+                Debug.LogWarning(
+                    $"[Degrais] Input Field de 'Número de Séries' tem valor inválido " +
+                    $"('{inputNumeroDeSeries.text}'). Mantendo o último valor válido: {numeroDeSeries}."
+                );
+            }
+        }
+        else
+        {
+            Debug.LogWarning(
+                $"[Degrais] 'Input Numero De Series' não está atribuído neste componente Degrais. " +
+                $"Usando fallback: {numeroDeSeries}. Arraste o Input Field do menu no Inspector do Degrais " +
+                "para que ele seja sempre a fonte da verdade."
+            );
+        }
+
+        if (inputPedrasPorDescanso != null)
+        {
+            if (int.TryParse(inputPedrasPorDescanso.text, out int p) && p > 0)
+            {
+                pedrasPorDescanso = p;
+            }
+            else
+            {
+                Debug.LogWarning(
+                    $"[Degrais] Input Field de 'Pedras Por Descanso' tem valor inválido " +
+                    $"('{inputPedrasPorDescanso.text}'). Mantendo o último valor válido: {pedrasPorDescanso}."
+                );
+            }
+        }
+        else
+        {
+            Debug.LogWarning(
+                $"[Degrais] 'Input Pedras Por Descanso' não está atribuído neste componente Degrais. " +
+                $"Usando fallback: {pedrasPorDescanso}. Arraste o Input Field do menu no Inspector do Degrais " +
+                "para que ele seja sempre a fonte da verdade."
+            );
+        }
+
+        configuradoPeloMenu = true;
+
+        Debug.Log(
+            $"[Degrais] Valores no momento da geração: pedrasPorDescanso={pedrasPorDescanso}, " +
+            $"numeroDeSeries={numeroDeSeries}"
+        );
+    }
+
+    // ─────────────────────────────────────────────
+    // ÚNICA PORTA DE ENTRADA PARA "PEDRAS POR DESCANSO" E "NÚMERO DE SÉRIES"
+    // Chamado pelo MenuUI_Jogo a partir dos Input Fields, logo no início do jogo.
+    // Serve para o VALOR JÁ FICAR CERTO antes mesmo da primeira geração.
+    // A garantia final, porém, é LerValoresDosInputFields() acima.
+    // ─────────────────────────────────────────────
+    public void ConfigurarSeries(int novoPedrasPorDescanso, int novoNumeroDeSeries)
+    {
+        if (novoPedrasPorDescanso <= 0 || novoNumeroDeSeries <= 0)
+        {
+            Debug.LogError(
+                $"[Degrais] ConfigurarSeries recebeu valores inválidos " +
+                $"(pedrasPorDescanso={novoPedrasPorDescanso}, numeroDeSeries={novoNumeroDeSeries}). " +
+                "Os valores precisam ser maiores que zero. Configuração ignorada."
+            );
+            return;
+        }
+
+        pedrasPorDescanso = novoPedrasPorDescanso;
+        numeroDeSeries = novoNumeroDeSeries;
+        configuradoPeloMenu = true;
+
+        Debug.Log(
+            $"[Degrais] Configurado pelo menu: pedrasPorDescanso={pedrasPorDescanso}, " +
+            $"numeroDeSeries={numeroDeSeries}"
+        );
+    }
+
+    // ─────────────────────────────────────────────
     // GERAR PEDRAS
     // ─────────────────────────────────────────────
     public void GerarDegraus()
     {
+        LerValoresDosInputFields();
+
         LimparFilhos();
 
         if (posicaoComeco == null || posicaoFinal == null)
@@ -109,10 +229,8 @@ public class Degrais : MonoBehaviour
                 continue;
 
             Vector3 posicaoPedra = hit.point + hit.normal * 0.03f;
-            Quaternion rotSuperficie = Quaternion.LookRotation(-hit.normal);
 
             contadorDesdeDescanso++;
-            int numeroNestaPedra = contadorDesdeDescanso; // posição desta pedra dentro da série atual (1-indexed)
 
             bool ehPontoDeDescanso =
                 pedraDescanso != null &&
@@ -144,15 +262,13 @@ public class Degrais : MonoBehaviour
                 prefabEscolhido = pedras[Random.Range(0, pedras.Length)];
             }
 
-            // Pontos de descanso e a plataforma final mantêm a rotação original
-            // definida no próprio prefab, ignorando a normal da superfície.
-            // As pedras normais continuam se alinhando à montanha via raycast.
-            Quaternion rotFinal = ehPontoDeDescanso
+            // pedras normais seguem a rotação da parede (raycast);
+            // pontos de descanso e a plataforma final mantêm a rotação ORIGINAL do prefab
+            Quaternion rot = ehPontoDeDescanso
                 ? prefabEscolhido.transform.rotation
-                : rotSuperficie;
+                : Quaternion.LookRotation(-hit.normal);
 
-            GameObject instancia = Instantiate(prefabEscolhido, posicaoPedra, rotFinal, transform);
-            ConfigurarProgresso(instancia, numeroNestaPedra, pedrasPorDescanso, ehPontoDeDescanso);
+            GameObject instancia = Instantiate(prefabEscolhido, posicaoPedra, rot, transform);
             index++;
 
             // ao gerar a plataforma final, a geração termina imediatamente
@@ -179,20 +295,6 @@ public class Degrais : MonoBehaviour
         }
 
         Debug.Log($"[Degrais] {index} pedras geradas em {serieAtual} série(s).");
-    }
-
-    // ─────────────────────────────────────────────
-    // CONFIGURA O COMPONENTE DE PROGRESSO (UI "1/15")
-    // ─────────────────────────────────────────────
-    void ConfigurarProgresso(GameObject instancia, int numeroNaSerie, int totalNaSerie, bool ehDescanso)
-    {
-        PedraProgresso progresso = instancia.GetComponent<PedraProgresso>();
-        if (progresso == null)
-            progresso = instancia.AddComponent<PedraProgresso>();
-
-        progresso.numeroNaSerie = numeroNaSerie;
-        progresso.totalNaSerie = totalNaSerie;
-        progresso.ehPontoDeDescanso = ehDescanso;
     }
 
     // ─────────────────────────────────────────────

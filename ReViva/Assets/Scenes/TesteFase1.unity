@@ -22754,6 +22754,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 4240227da8440a649be0e205c0ca909a, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 4240227da8440a649be0e205c0ca909a, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.10854757
       objectReference: {fileID: 0}
@@ -22792,6 +22796,10 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: 4240227da8440a649be0e205c0ca909a, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 4240227da8440a649be0e205c0ca909a, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 4240227da8440a649be0e205c0ca909a, type: 3}
       propertyPath: m_Name
@@ -24685,7 +24693,7 @@ Transform:
   m_GameObject: {fileID: 256182308}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3.32, y: 41.97, z: 8.26}
+  m_LocalPosition: {x: -1.61, y: 41.97, z: 8.26}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -130828,7 +130836,7 @@ Transform:
   m_GameObject: {fileID: 1427930600}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.46, y: -1.988, z: 0.835}
+  m_LocalPosition: {x: -1.61, y: -1.988, z: 0.835}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -159209,6 +159217,8 @@ MonoBehaviour:
   difficultyText: {fileID: 1182156638}
   inputNumeroDeSeries: {fileID: 0}
   inputPedrasPorDescanso: {fileID: 0}
+  padraoNumeroDeSeries: 3
+  padraoPedrasPorDescanso: 5
   degrais: {fileID: 1751652809}
   goniometria: {fileID: 1751652808}
   statusCalibracao: {fileID: 133327974}
@@ -159262,9 +159272,9 @@ MonoBehaviour:
   - {fileID: 957917362}
   - {fileID: 792466981}
   pedraDescanso: {fileID: 5638248776948912418, guid: 1f2c725a855e3d744ab261f52f0c9f97, type: 3}
-  pedrasPorDescanso: 15
-  numeroDeSeries: 3
   plataformaFinal: {fileID: 4484217040174637545, guid: 51a2f7def91df6841b6422a3cdebce8e, type: 3}
+  inputNumeroDeSeries: {fileID: 1424590442}
+  inputPedrasPorDescanso: {fileID: 1970333985}
   layerMontanha:
     serializedVersion: 2
     m_Bits: 4096
@@ -159272,6 +159282,7 @@ MonoBehaviour:
   distanciaRaycast: 20
   distanciaVerticalMinima: 0.05
   maxPedras: 500
+  configuradoPeloMenu: 0
 --- !u!114 &1751652810
 MonoBehaviour:
   m_ObjectHideFlags: 0
