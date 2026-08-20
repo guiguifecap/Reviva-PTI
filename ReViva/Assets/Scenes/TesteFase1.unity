@@ -159280,8 +159280,16 @@ MonoBehaviour:
     m_Bits: 4096
   offsetHorizontal: 0.3
   distanciaRaycast: 20
+  corrigirProfundidadeZ: 1
+  alcanceCorrecaoZ: 100
+  folgaCorrecaoZ: 0.05
   distanciaVerticalMinima: 0.05
   maxPedras: 500
+  montanha: {fileID: 1821363798}
+  escalaMaximaMontanha: 2
+  escalarApenasEixoY: 1
+  moverPosicaoFinalAoEscalar: 0
+  margemAlturaMontanha: 10
   configuradoPeloMenu: 0
 --- !u!114 &1751652810
 MonoBehaviour:
@@ -165235,6 +165243,11 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -3452173775283739104, guid: 4240227da8440a649be0e205c0ca909a, type: 3}
+--- !u!4 &1821363798 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 4240227da8440a649be0e205c0ca909a, type: 3}
+  m_PrefabInstance: {fileID: 235926003}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1821897935
 PrefabInstance:
   m_ObjectHideFlags: 0
