@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 40e1991983392d3478ac01abb801d1ba
+guid: fd39211c01ebfd34b8d93d4841737f32
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -49,7 +49,7 @@ TextureImporter:
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
-  spriteBorder: {x: 0, y: 265, z: 0, w: 262}
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
   alphaIsTransparency: 1
@@ -72,7 +72,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 0
+    textureCompression: 1
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -93,30 +93,17 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 4
-    buildTarget: Android
-    maxTextureSize: 2048
-    resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
-    ignorePlatformSupport: 0
-    androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Logo _1
+      name: Caixas_0
       rect:
         serializedVersion: 2
-        x: 23
-        y: 268
-        width: 2513
-        height: 904
+        x: 9
+        y: 643
+        width: 535
+        height: 352
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -125,8 +112,52 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 72121f8498566724fa79ccb6f9a9b9a0
-      internalID: 2009042366
+      spriteID: 9dd9230f5c8344b4fad4d068eeffa001
+      internalID: 255951949
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Caixas_1
+      rect:
+        serializedVersion: 2
+        x: 10
+        y: 428
+        width: 531
+        height: 143
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5b90b780313d1724da2f50575999ff48
+      internalID: -109832002
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Caixas_2
+      rect:
+        serializedVersion: 2
+        x: 9
+        y: 9
+        width: 535
+        height: 352
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 519b278b6a5b8164fae7ab818688227d
+      internalID: 1986160892
       vertices: []
       indices: 
       edges: []
@@ -136,7 +167,7 @@ TextureImporter:
     physicsShape: []
     bones: []
     spriteID: 5e97eb03825dee720800000000000000
-    internalID: 1537655665
+    internalID: 0
     vertices: []
     indices: 
     edges: []
@@ -145,13 +176,9 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Logo _0: -668596022
-      Logo _1: 2009042366
-      Logo _2: 69402170
-      Logo _3: -1376629755
-      Logo _4: -153405535
-      Logo _5: 2119393301
-      Logo _6: 939765667
+      Caixas_0: 255951949
+      Caixas_1: -109832002
+      Caixas_2: 1986160892
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
