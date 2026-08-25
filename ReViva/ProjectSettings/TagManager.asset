@@ -6,6 +6,8 @@ TagManager:
   tags:
   - interactable
   - climbable
+  - Pedra
+  - Mao
   layers:
   - Default
   - TransparentFX
