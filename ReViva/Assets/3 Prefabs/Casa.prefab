@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3385049206250299758
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3141178426757404440}
+  m_Layer: 0
+  m_Name: Casa_Root
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3141178426757404440
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3385049206250299758}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.0341, y: 0.0504, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3850844927788104531}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &3673330301092879544
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -54,12 +85,20 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 65a4dfcc6166aed46a0bcb63584c244f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3141178426757404440}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 65a4dfcc6166aed46a0bcb63584c244f, type: 3}
       insertIndex: -1
       addedObject: {fileID: -1682243329269639944}
   m_SourcePrefab: {fileID: 100100000, guid: 65a4dfcc6166aed46a0bcb63584c244f, type: 3}
+--- !u!4 &3850844927788104531 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 65a4dfcc6166aed46a0bcb63584c244f, type: 3}
+  m_PrefabInstance: {fileID: 3673330301092879544}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &4484217040174637545 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 65a4dfcc6166aed46a0bcb63584c244f, type: 3}
