@@ -9,11 +9,14 @@ EditorBuildSettings:
     path: Assets/1 SCENES/Menu.unity
     guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 1
-    path: Assets/1 SCENES/EscaladaPrototipo.unity
-    guid: 96fbd7d12ca62d346888263293eca59c
+    path: Assets/1 SCENES/MenuEscolha.unity
+    guid: 74ac5885307e28c45b5fcb9e001c5232
   - enabled: 1
     path: Assets/1 SCENES/TesteFase1.unity
     guid: 8891be75cec957149ae3c75a9b21be8d
+  - enabled: 1
+    path: Assets/1 SCENES/EscaladaPrototipo.unity
+    guid: 96fbd7d12ca62d346888263293eca59c
   m_configObjects:
     Unity.XR.Oculus.Settings: {fileID: 11400000, guid: fe2023ce4b6ca5649885e7519036511e, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

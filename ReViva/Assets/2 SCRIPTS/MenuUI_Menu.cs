@@ -11,6 +11,8 @@ public class MenuUI_Menu : MonoBehaviour
     [Header("Loading UI")]
     public GameObject loadingUI;
 
+    [SerializeField] GameObject ConfigPanelMenu;
+
 
     // ============================================================
     // BUTTON ANIMATION
@@ -174,6 +176,18 @@ public class MenuUI_Menu : MonoBehaviour
         }
     }
 
+    // ============================================================
+    // CONFIG
+    // ============================================================
+
+    public void ConfigButtonOpen()
+    {
+        ConfigPanelMenu.SetActive(true);
+    }
+    public void ConfigButtonClose()
+    {
+        ConfigPanelMenu.SetActive(false);
+    }
 
     // ============================================================
     // START GAME
