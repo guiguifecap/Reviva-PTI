@@ -91,6 +91,10 @@ public class MenuUI_Jogo : MonoBehaviour
         }
 
         // Começa no modo normal
+        // (isso pode desativar o painel onde ficam os Input Fields de série —
+        // por isso ConfigurarInputsDeSerie() e ReaplicarTextoDosInputsDeSerie()
+        // existem: garantem que o texto seja preenchido de novo sempre que o
+        // painel Avançado for reaberto, não só uma vez aqui no Start)
         SetAdvancedMode(false);
 
         // Começa no Regular
@@ -313,6 +317,39 @@ public class MenuUI_Jogo : MonoBehaviour
 
         if (difficultySlider != null)
             difficultySlider.interactable = advanced;
+
+        // ── CORREÇÃO ──
+        // Toda vez que o painel Avançado é ABERTO, reaplica o texto dos Input
+        // Fields de série. Isso corrige o caso em que Qnd_Series/Qnd_Pedras
+        // ficam dentro desse painel e são desativados ANTES de receber seu
+        // valor padrão — sem isso, eles podem ficar vazios (mostrando só o
+        // placeholder "Enter text") na primeira vez que o painel é aberto.
+        if (advanced)
+            ReaplicarTextoDosInputsDeSerie();
+    }
+
+    /// <summary>
+    /// Sincroniza o texto exibido nos campos com o valor REAL guardado no
+    /// Degrais (a fonte confiável), sempre — não só quando o campo aparenta
+    /// estar vazio. Isso evita que o campo volte pro padrão (3/5) quando o
+    /// próprio TMP_InputField perde o texto ao ser desativado/reativado
+    /// (o que já mostrou acontecer). Chamado sempre que o painel Avançado é aberto.
+    /// </summary>
+    void ReaplicarTextoDosInputsDeSerie()
+    {
+        int numeroDeSeriesAtual = (degrais != null && degrais.NumeroDeSeries > 0)
+            ? degrais.NumeroDeSeries
+            : padraoNumeroDeSeries;
+
+        int pedrasPorDescansoAtual = (degrais != null && degrais.PedrasPorDescanso > 0)
+            ? degrais.PedrasPorDescanso
+            : padraoPedrasPorDescanso;
+
+        if (inputNumeroDeSeries != null)
+            inputNumeroDeSeries.text = numeroDeSeriesAtual.ToString();
+
+        if (inputPedrasPorDescanso != null)
+            inputPedrasPorDescanso.text = pedrasPorDescansoAtual.ToString();
     }
 
     // ── Séries (Numero De Series / Pedras Por Descanso) ──────
@@ -350,6 +387,10 @@ public class MenuUI_Jogo : MonoBehaviour
         // aplica o valor inicial dos campos no Degrais AGORA, antes de qualquer
         // calibração ou geração de pedras
         AplicarValoresDosInputsNoDegrais(regenerarDepois: false);
+
+        // e garante mais uma vez que o texto visível está correto, caso o
+        // preenchimento acima tenha acontecido enquanto o painel estava oculto
+        ReaplicarTextoDosInputsDeSerie();
     }
 
     /// <summary>

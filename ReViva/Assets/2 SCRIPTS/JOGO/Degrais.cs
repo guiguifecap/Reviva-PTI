@@ -17,8 +17,8 @@ public class Degrais : MonoBehaviour
     [Tooltip("Prefab da plataforma final. Se ficar vazio, usa o próprio 'Pedra Descanso' na última série.")]
     public GameObject plataformaFinal;
 
-    private int pedrasPorDescanso = 15;
-    private int numeroDeSeries = 3;
+    private int pedrasPorDescanso = 20;
+    private int numeroDeSeries = 4;
 
     public int PedrasPorDescanso => pedrasPorDescanso;
     public int NumeroDeSeries => numeroDeSeries;
