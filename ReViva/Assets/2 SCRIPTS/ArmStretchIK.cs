@@ -13,6 +13,13 @@ public class ArmStretchIK_Both : MonoBehaviour
         public Rigidbody handRb;
         public float followSpeed;
 
+        [Tooltip(
+            "Velocidade máxima (m/s) que a mão física pode atingir ao perseguir o controle. " +
+            "Evita picos de velocidade absurdos quando a mão real se move muito rápido, o que " +
+            "também ajuda a colisão contínua a funcionar de forma estável."
+        )]
+        public float maxSpeed = 8f;
+
         [HideInInspector] public float originalUpperLength;
         [HideInInspector] public float originalLowerLength;
 
@@ -51,6 +58,25 @@ public class ArmStretchIK_Both : MonoBehaviour
 
         arm.upperOriginalScale = arm.upperArm.localScale;
         arm.lowerOriginalScale = arm.lowerArm.localScale;
+
+        // ─────────────────────────────────────────────
+        // CORREÇÃO: mão atravessando a montanha ("tunneling")
+        //
+        // Por padrão o Rigidbody usa Collision Detection = Discrete, que só
+        // verifica colisão no ponto final de cada passo de física — não no
+        // trajeto percorrido. Como a mão física se move rápido (segue o
+        // controle do VR por velocidade), um movimento rápido da mão real
+        // pode fazer o Rigidbody "pular" para dentro/atrás do collider da
+        // montanha num único FixedUpdate, sem nunca detectar a colisão no
+        // meio do caminho. ContinuousDynamic faz o motor de física testar
+        // a trajetória inteira do Rigidbody, evitando que ele atravesse a
+        // rocha. É forçado aqui por código para não depender de ninguém
+        // lembrar de configurar isso certo no Inspector.
+        // ─────────────────────────────────────────────
+        if (arm.handRb != null)
+        {
+            arm.handRb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        }
     }
 
     // 👉 PHYSICS FOLLOW POR MÃO
@@ -59,7 +85,13 @@ public class ArmStretchIK_Both : MonoBehaviour
         if (arm.handRb == null || arm.handTarget == null) return;
 
         Vector3 dir = arm.handTarget.position - arm.handRb.position;
-        arm.handRb.linearVelocity = dir * arm.followSpeed;
+        Vector3 velocidadeDesejada = dir * arm.followSpeed;
+
+        // Limita a velocidade máxima: além de evitar espasmos físicos quando
+        // a mão real se move muito rápido, mantém a colisão contínua estável
+        // (velocidades absurdamente altas ainda podem causar instabilidade
+        // mesmo com ContinuousDynamic).
+        arm.handRb.linearVelocity = Vector3.ClampMagnitude(velocidadeDesejada, arm.maxSpeed);
     }
 
     void UpdateArm(Arm arm)
