@@ -62,6 +62,20 @@ public class Degrais : MonoBehaviour
 
     [HideInInspector] public bool configuradoPeloMenu = false;
 
+    // =========================================================
+    // NOMES DOS ROOTS DE REFERÊNCIA
+    // =========================================================
+    //
+    // Assim como a plataforma final usa "Casa_Root" como ponto
+    // de referência dentro do prefab, o ponto de descanso usa
+    // "Palanque_Root". Nenhum dos dois Transforms é movido ou
+    // alterado — apenas usados para calcular onde o prefab deve
+    // nascer para que esse Transform fique exatamente na posição
+    // desejada (a posição da "pedra").
+    // =========================================================
+    const string NomeRootCasa = "Casa_Root";
+    const string NomeRootPalanque = "Palanque_Root";
+
     static readonly Vector3[] Direcoes =
     {
         Vector3.forward,
@@ -270,25 +284,40 @@ public class Degrais : MonoBehaviour
 
             // =========================================================
             // ALTERAÇÃO:
-            // Somente a plataforma final usa o Casa_Root como ponto
-            // de referência.
+            // A plataforma final usa o Casa_Root, e o ponto de
+            // descanso (incluindo o caso em que ele também serve
+            // como plataforma final, quando 'plataformaFinal' está
+            // vazio) usa o Palanque_Root como ponto de referência.
             //
-            // O Casa_Root NÃO é movido nem alterado.
+            // Nenhum dos dois Roots é movido nem alterado.
             // Apenas calculamos onde o prefab deve ser instanciado
-            // para que o Casa_Root fique em posicaoPedra.
+            // para que o Root fique em posicaoPedra.
             // =========================================================
 
             Vector3 posicaoInstanciacao = posicaoPedra;
 
-            if (plataformaFinalGerada &&
-                prefabEscolhido == plataformaFinal)
+            if (ehPontoDeDescanso)
             {
-                posicaoInstanciacao =
-                    CalcularPosicaoInstanciacaoPeloCasaRoot(
-                        prefabEscolhido,
-                        posicaoPedra,
-                        rot
-                    );
+                if (plataformaFinalGerada && prefabEscolhido == plataformaFinal)
+                {
+                    posicaoInstanciacao =
+                        CalcularPosicaoInstanciacaoPeloRoot(
+                            prefabEscolhido,
+                            NomeRootCasa,
+                            posicaoPedra,
+                            rot
+                        );
+                }
+                else if (prefabEscolhido == pedraDescanso)
+                {
+                    posicaoInstanciacao =
+                        CalcularPosicaoInstanciacaoPeloRoot(
+                            prefabEscolhido,
+                            NomeRootPalanque,
+                            posicaoPedra,
+                            rot
+                        );
+                }
             }
 
             GameObject instancia =
@@ -330,9 +359,15 @@ public class Degrais : MonoBehaviour
                 Quaternion rotFallback =
                     prefabFinalFallback.transform.rotation;
 
+                string rootFallback =
+                    prefabFinalFallback == plataformaFinal
+                    ? NomeRootCasa
+                    : NomeRootPalanque;
+
                 Vector3 posicaoInstanciacaoFallback =
-                    CalcularPosicaoInstanciacaoPeloCasaRoot(
+                    CalcularPosicaoInstanciacaoPeloRoot(
                         prefabFinalFallback,
+                        rootFallback,
                         posFallback,
                         rotFallback
                     );
@@ -374,69 +409,74 @@ public class Degrais : MonoBehaviour
     }
 
     // =========================================================
-    // CASA ROOT
+    // ROOT DE REFERÊNCIA (Casa_Root / Palanque_Root)
     // =========================================================
     //
-    // NÃO altera o Transform do Casa_Root.
+    // NÃO altera o Transform do Root procurado.
     //
-    // Procura o Casa_Root dentro do prefab e calcula qual deve ser
-    // a posição do objeto raiz para que o Casa_Root fique exatamente
-    // na posição desejada.
+    // Procura, dentro do prefab, um Transform filho com o nome
+    // informado (ex.: "Casa_Root" ou "Palanque_Root") e calcula
+    // qual deve ser a posição do objeto raiz do prefab para que
+    // esse Transform fique exatamente na posição desejada.
+    //
+    // Se o Transform não for encontrado, o prefab é instanciado
+    // normalmente na posição desejada (comportamento antigo).
     // =========================================================
 
-    Vector3 CalcularPosicaoInstanciacaoPeloCasaRoot(
+    Vector3 CalcularPosicaoInstanciacaoPeloRoot(
         GameObject prefab,
+        string nomeDoRoot,
         Vector3 posicaoAlvo,
         Quaternion rotacao)
     {
-        if (prefab == null)
+        if (prefab == null || string.IsNullOrEmpty(nomeDoRoot))
             return posicaoAlvo;
 
-        Transform casaRoot = null;
+        Transform root = null;
 
         Transform[] transforms =
             prefab.GetComponentsInChildren<Transform>(true);
 
         foreach (Transform t in transforms)
         {
-            if (t.name == "Casa_Root")
+            if (t.name == nomeDoRoot)
             {
-                casaRoot = t;
+                root = t;
                 break;
             }
         }
 
-        if (casaRoot == null)
+        if (root == null)
         {
             Debug.LogWarning(
-                "[Degrais] O prefab da plataforma final não possui " +
-                "um Transform chamado 'Casa_Root'. " +
-                "A plataforma será instanciada normalmente."
+                $"[Degrais] O prefab '{prefab.name}' não possui " +
+                $"um Transform chamado '{nomeDoRoot}'. " +
+                "O prefab será instanciado normalmente."
             );
 
             return posicaoAlvo;
         }
 
-        // Pega a posição do Casa_Root em relação ao pivot
-        // do prefab, SEM alterar o Casa_Root.
-        Vector3 casaRootLocal =
+        // Pega a posição do Root em relação ao pivot
+        // do prefab, SEM alterar o Root.
+        Vector3 rootLocal =
             prefab.transform.InverseTransformPoint(
-                casaRoot.position
+                root.position
             );
 
-        // Converte o deslocamento local do Casa_Root
+        // Converte o deslocamento local do Root
         // para o espaço do mundo.
-        Vector3 deslocamentoCasaRootNoMundo =
+        Vector3 deslocamentoNoMundo =
             rotacao *
             Vector3.Scale(
                 prefab.transform.localScale,
-                casaRootLocal
+                rootLocal
             );
 
-        // O prefab nasce deslocado para que o Casa_Root
+        // O prefab nasce deslocado para que o Root
         // fique exatamente na posição desejada.
         return posicaoAlvo -
-               deslocamentoCasaRootNoMundo;
+               deslocamentoNoMundo;
     }
 
     // ─────────────────────────────────────────────
