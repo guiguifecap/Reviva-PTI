@@ -10,18 +10,24 @@ public class AudioManager : MonoBehaviour
     [Header("Mixer")]
     public AudioMixer audioMixer;
 
-    [Header("Forest")]
+    [Header("Floresta")]
     public AudioSource forestSource;
     public AudioClip[] forestSounds;
     public TextMeshProUGUI forestVolumeText;
 
-    [Header("Walking")]
+    [Header("Passos")]
     public AudioSource walkingSource;
     public AudioClip[] walkingSounds;
     public TextMeshProUGUI walkingVolumeText;
 
+    [Header("Pedras")]
+    public AudioSource pedrasSource;
+    public AudioClip[] pedrasSounds;
+    public TextMeshProUGUI pedrasVolumeText;
+
     [Header("Master")]
     public TextMeshProUGUI masterVolumeText;
+
 
     private Coroutine forestCoroutine;
 
@@ -68,6 +74,20 @@ public class AudioManager : MonoBehaviour
     }
 
     // ─────────────────────────────────────────────
+    // PEDRAS
+    // ─────────────────────────────────────────────
+
+    public void PlayRockGrab()
+    {
+        if (pedrasSounds.Length == 0)
+            return;
+
+        int random = Random.Range(0, pedrasSounds.Length);
+
+        pedrasSource.PlayOneShot(pedrasSounds[random]);
+    }
+
+    // ─────────────────────────────────────────────
     // WALKING
     // ─────────────────────────────────────────────
 
@@ -104,6 +124,16 @@ public class AudioManager : MonoBehaviour
     {
         int percentage = Mathf.RoundToInt(Mathf.InverseLerp(-80f, 0f, value) * 100f);
         walkingVolumeText.text = percentage + "%";
+    }
+
+    public void SetPedrasVolume(float value)
+    {
+        audioMixer.SetFloat("pedrasVolume", value);
+    }
+    public void UpdatePedrasVolumeText(float value)
+    {
+        int percentage = Mathf.RoundToInt(Mathf.InverseLerp(-80f, 0f, value) * 100f);
+        pedrasVolumeText.text = percentage + "%";
     }
 
     public void SetMasterVolume(float value)
