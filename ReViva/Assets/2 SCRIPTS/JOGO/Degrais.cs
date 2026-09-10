@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿
+using UnityEngine;
 using TMPro;
 
 public class Degrais : MonoBehaviour
@@ -11,10 +12,10 @@ public class Degrais : MonoBehaviour
     public GameObject[] pedras;
 
     [Header("Séries (repetições)")]
-    [Tooltip("Prefab do ponto de descanso, instanciado no lugar de uma pedra normal.")]
+    [Tooltip("Prefab do ponto de descanso (palanque), instanciado JUNTO com a pedra normal, nunca no lugar dela.")]
     public GameObject pedraDescanso;
 
-    [Tooltip("Prefab da plataforma final. Se ficar vazio, usa o próprio 'Pedra Descanso' na última série.")]
+    [Tooltip("Prefab da plataforma final (casa). Se ficar vazio, usa o próprio 'Pedra Descanso' na última série.")]
     public GameObject plataformaFinal;
 
     private int pedrasPorDescanso = 15;
@@ -66,12 +67,19 @@ public class Degrais : MonoBehaviour
     // NOMES DOS ROOTS DE REFERÊNCIA
     // =========================================================
     //
-    // Assim como a plataforma final usa "Casa_Root" como ponto
-    // de referência dentro do prefab, o ponto de descanso usa
-    // "Palanque_Root". Nenhum dos dois Transforms é movido ou
-    // alterado — apenas usados para calcular onde o prefab deve
-    // nascer para que esse Transform fique exatamente na posição
-    // desejada (a posição da "pedra").
+    // A plataforma final usa "Casa_Root" e o ponto de descanso
+    // usa "Palanque_Root" como ponto de referência dentro do
+    // prefab. Nenhum dos dois Transforms é movido ou alterado —
+    // apenas usados para calcular onde o prefab deve nascer para
+    // que esse Transform fique exatamente na posição desejada
+    // (a posição da "pedra" daquele degrau).
+    //
+    // IMPORTANTE: o palanque/casa é um objeto ADICIONAL, nunca
+    // substitui a pedra de escalada. Nos pontos de descanso, a
+    // pedra normal continua sendo instanciada normalmente (para
+    // o jogador poder escalar) e o palanque/casa nasce junto,
+    // no mesmo ponto, apenas como referência/decoração de
+    // descanso.
     // =========================================================
     const string NomeRootCasa = "Casa_Root";
     const string NomeRootPalanque = "Palanque_Root";
@@ -241,101 +249,108 @@ public class Degrais : MonoBehaviour
             ultimaPosicaoValida = posicaoPedra;
             ultimaNormalValida = hit.normal;
 
-            contadorDesdeDescanso++;
-
-            bool ehPontoDeDescanso =
-                pedraDescanso != null &&
-                pedrasPorDescanso > 0 &&
-                contadorDesdeDescanso >= pedrasPorDescanso;
-
-            GameObject prefabEscolhido;
-
-            if (ehPontoDeDescanso)
-            {
-                serieAtual++;
-
-                bool ehUltimaSerie =
-                    serieAtual >= numeroDeSeries;
-
-                if (ehUltimaSerie)
-                {
-                    prefabEscolhido =
-                        plataformaFinal != null
-                        ? plataformaFinal
-                        : pedraDescanso;
-
-                    plataformaFinalGerada = true;
-                }
-                else
-                {
-                    prefabEscolhido = pedraDescanso;
-                }
-
-                contadorDesdeDescanso = 0;
-            }
-            else
-            {
-                prefabEscolhido =
-                    pedras[Random.Range(0, pedras.Length)];
-            }
-
-            Quaternion rot =
-                prefabEscolhido.transform.rotation;
-
             // =========================================================
-            // ALTERAÇÃO:
-            // A plataforma final usa o Casa_Root, e o ponto de
-            // descanso (incluindo o caso em que ele também serve
-            // como plataforma final, quando 'plataformaFinal' está
-            // vazio) usa o Palanque_Root como ponto de referência.
-            //
-            // Nenhum dos dois Roots é movido nem alterado.
-            // Apenas calculamos onde o prefab deve ser instanciado
-            // para que o Root fique em posicaoPedra.
+            // PEDRA DE ESCALADA — SEMPRE nasce, em todo ponto,
+            // inclusive nos pontos de descanso. Ela NUNCA é
+            // substituída pelo palanque ou pela casa.
             // =========================================================
 
-            Vector3 posicaoInstanciacao = posicaoPedra;
+            GameObject pedraEscolhida =
+                pedras[Random.Range(0, pedras.Length)];
 
-            if (ehPontoDeDescanso)
-            {
-                if (plataformaFinalGerada && prefabEscolhido == plataformaFinal)
-                {
-                    posicaoInstanciacao =
-                        CalcularPosicaoInstanciacaoPeloRoot(
-                            prefabEscolhido,
-                            NomeRootCasa,
-                            posicaoPedra,
-                            rot
-                        );
-                }
-                else if (prefabEscolhido == pedraDescanso)
-                {
-                    posicaoInstanciacao =
-                        CalcularPosicaoInstanciacaoPeloRoot(
-                            prefabEscolhido,
-                            NomeRootPalanque,
-                            posicaoPedra,
-                            rot
-                        );
-                }
-            }
-
-            GameObject instancia =
-                Instantiate(
-                    prefabEscolhido,
-                    posicaoInstanciacao,
-                    rot,
-                    transform
-                );
+            Instantiate(
+                pedraEscolhida,
+                posicaoPedra,
+                pedraEscolhida.transform.rotation,
+                transform
+            );
 
             index++;
 
-            if (plataformaFinalGerada)
+            contadorDesdeDescanso++;
+
+            bool ehPontoDeDescanso =
+                pedrasPorDescanso > 0 &&
+                contadorDesdeDescanso >= pedrasPorDescanso;
+
+            if (!ehPontoDeDescanso)
+                continue;
+
+            // =========================================================
+            // PALANQUE / CASA — objeto ADICIONAL, instanciado JUNTO
+            // com a pedra (não no lugar dela), usando seu próprio
+            // Root como referência de posicionamento.
+            // =========================================================
+
+            serieAtual++;
+
+            bool ehUltimaSerie =
+                serieAtual >= numeroDeSeries;
+
+            GameObject prefabExtra;
+            string nomeRootExtra;
+
+            if (ehUltimaSerie)
+            {
+                if (plataformaFinal != null)
+                {
+                    prefabExtra = plataformaFinal;
+                    nomeRootExtra = NomeRootCasa;
+                }
+                else
+                {
+                    prefabExtra = pedraDescanso;
+                    nomeRootExtra = NomeRootPalanque;
+                }
+
+                plataformaFinalGerada = prefabExtra != null;
+            }
+            else
+            {
+                prefabExtra = pedraDescanso;
+                nomeRootExtra = NomeRootPalanque;
+            }
+
+            contadorDesdeDescanso = 0;
+
+            if (prefabExtra == null)
+            {
+                if (ehUltimaSerie)
+                    break;
+
+                continue;
+            }
+
+            Quaternion rotExtra =
+                prefabExtra.transform.rotation;
+
+            Vector3 posicaoInstanciacaoExtra =
+                CalcularPosicaoInstanciacaoPeloRoot(
+                    prefabExtra,
+                    nomeRootExtra,
+                    posicaoPedra,
+                    rotExtra
+                );
+
+            Instantiate(
+                prefabExtra,
+                posicaoInstanciacaoExtra,
+                rotExtra,
+                transform
+            );
+
+            if (ehUltimaSerie)
                 break;
         }
 
         // ─────────────────────────────────────────────
         // REDE DE SEGURANÇA DO PONTO FINAL
+        // ─────────────────────────────────────────────
+        // A última pedra de escalada já foi instanciada dentro do
+        // laço acima (ela nunca deixa de nascer). Aqui garantimos
+        // apenas que a casa/palanque final também exista, caso a
+        // altura real da montanha não tenha permitido completar
+        // todas as séries.
         // ─────────────────────────────────────────────
 
         if (!plataformaFinalGerada && teveAlgumaPedra)

@@ -285,9 +285,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 505cca3700a93d8458898e5dd95ae892, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Aviaozinhodepapel
-  lift: 0.15
-  drag: 0.02
-  stability: 2
+  forcaSustentacao: 2.5
+  estabilidadeBico: 3.5
+  gravidadePapel: 3
 --- !u!1 &919132149155446097
 GameObject:
   m_ObjectHideFlags: 0
@@ -680,9 +680,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 505cca3700a93d8458898e5dd95ae892, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Aviaozinhodepapel
-  lift: 0.15
-  drag: 0.02
-  stability: 2
+  forcaSustentacao: 2.5
+  estabilidadeBico: 3.5
+  gravidadePapel: 3
 --- !u!1 &1430959620608357973
 GameObject:
   m_ObjectHideFlags: 0
@@ -968,9 +968,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 505cca3700a93d8458898e5dd95ae892, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Aviaozinhodepapel
-  lift: 0.15
-  drag: 0.02
-  stability: 2
+  forcaSustentacao: 2.5
+  estabilidadeBico: 3.5
+  gravidadePapel: 3
 --- !u!1 &1908893549454636785
 GameObject:
   m_ObjectHideFlags: 0
@@ -1256,9 +1256,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 505cca3700a93d8458898e5dd95ae892, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Aviaozinhodepapel
-  lift: 0.15
-  drag: 0.02
-  stability: 2
+  forcaSustentacao: 2.5
+  estabilidadeBico: 3.5
+  gravidadePapel: 3
 --- !u!1 &2984998629343681334
 GameObject:
   m_ObjectHideFlags: 0
@@ -1544,9 +1544,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 505cca3700a93d8458898e5dd95ae892, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Aviaozinhodepapel
-  lift: 0.15
-  drag: 0.02
-  stability: 2
+  forcaSustentacao: 2.5
+  estabilidadeBico: 3.5
+  gravidadePapel: 3
 --- !u!1 &3280420277451536655
 GameObject:
   m_ObjectHideFlags: 0
@@ -1603,7 +1603,7 @@ Transform:
   m_GameObject: {fileID: 3385049206250299758}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.02893, y: 0.0633, z: 0}
+  m_LocalPosition: {x: -0.02893, y: 0.0633, z: 0.0062}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1925,9 +1925,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 505cca3700a93d8458898e5dd95ae892, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Aviaozinhodepapel
-  lift: 0.15
-  drag: 0.02
-  stability: 2
+  forcaSustentacao: 2.5
+  estabilidadeBico: 3.5
+  gravidadePapel: 3
 --- !u!1 &3791935415482425855
 GameObject:
   m_ObjectHideFlags: 0
@@ -2213,9 +2213,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 505cca3700a93d8458898e5dd95ae892, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Aviaozinhodepapel
-  lift: 0.15
-  drag: 0.02
-  stability: 2
+  forcaSustentacao: 2.5
+  estabilidadeBico: 3.5
+  gravidadePapel: 3
 --- !u!1 &4008035942302816513
 GameObject:
   m_ObjectHideFlags: 0
@@ -2501,9 +2501,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 505cca3700a93d8458898e5dd95ae892, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Aviaozinhodepapel
-  lift: 0.15
-  drag: 0.02
-  stability: 2
+  forcaSustentacao: 2.5
+  estabilidadeBico: 3.5
+  gravidadePapel: 3
 --- !u!1 &4011959044503213285
 GameObject:
   m_ObjectHideFlags: 0
@@ -3038,9 +3038,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 505cca3700a93d8458898e5dd95ae892, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Aviaozinhodepapel
-  lift: 0.15
-  drag: 0.02
-  stability: 2
+  forcaSustentacao: 2.5
+  estabilidadeBico: 3.5
+  gravidadePapel: 3
 --- !u!1 &5130453839094776883
 GameObject:
   m_ObjectHideFlags: 0
@@ -3388,9 +3388,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 505cca3700a93d8458898e5dd95ae892, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Aviaozinhodepapel
-  lift: 0.15
-  drag: 0.02
-  stability: 2
+  forcaSustentacao: 2.5
+  estabilidadeBico: 3.5
+  gravidadePapel: 3
 --- !u!1 &5973757811914252043
 GameObject:
   m_ObjectHideFlags: 0
@@ -3676,9 +3676,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 505cca3700a93d8458898e5dd95ae892, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Aviaozinhodepapel
-  lift: 0.15
-  drag: 0.02
-  stability: 2
+  forcaSustentacao: 2.5
+  estabilidadeBico: 3.5
+  gravidadePapel: 3
 --- !u!1 &6423652993371234597
 GameObject:
   m_ObjectHideFlags: 0
@@ -3995,9 +3995,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 505cca3700a93d8458898e5dd95ae892, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Aviaozinhodepapel
-  lift: 0.15
-  drag: 0.02
-  stability: 2
+  forcaSustentacao: 2.5
+  estabilidadeBico: 3.5
+  gravidadePapel: 3
 --- !u!1 &6553529765882038933
 GameObject:
   m_ObjectHideFlags: 0
@@ -4314,9 +4314,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 505cca3700a93d8458898e5dd95ae892, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Aviaozinhodepapel
-  lift: 0.15
-  drag: 0.02
-  stability: 2
+  forcaSustentacao: 2.5
+  estabilidadeBico: 3.5
+  gravidadePapel: 3
 --- !u!1 &7213501735534429004
 GameObject:
   m_ObjectHideFlags: 0
@@ -4633,9 +4633,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 505cca3700a93d8458898e5dd95ae892, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Aviaozinhodepapel
-  lift: 0.15
-  drag: 0.02
-  stability: 2
+  forcaSustentacao: 2.5
+  estabilidadeBico: 3.5
+  gravidadePapel: 3
 --- !u!1 &7624418535631948141
 GameObject:
   m_ObjectHideFlags: 0
@@ -5014,9 +5014,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 505cca3700a93d8458898e5dd95ae892, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Aviaozinhodepapel
-  lift: 0.15
-  drag: 0.02
-  stability: 2
+  forcaSustentacao: 2.5
+  estabilidadeBico: 3.5
+  gravidadePapel: 3
 --- !u!1 &8483004533476433453
 GameObject:
   m_ObjectHideFlags: 0
@@ -5302,9 +5302,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 505cca3700a93d8458898e5dd95ae892, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Aviaozinhodepapel
-  lift: 0.15
-  drag: 0.02
-  stability: 2
+  forcaSustentacao: 2.5
+  estabilidadeBico: 3.5
+  gravidadePapel: 3
 --- !u!1 &8539068817574893509
 GameObject:
   m_ObjectHideFlags: 0
