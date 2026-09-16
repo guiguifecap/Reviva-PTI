@@ -86,15 +86,15 @@ Material:
     - _AlphaClip: 0
     - _AlphaCutoff: 0.35
     - _AlphaToMask: 0
-    - _AmbientInfluence: 0.25
+    - _AmbientInfluence: 0.091
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
     - _BumpScale: 1
     - _CanopyCenterHeight: 1.5
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
-    - _ColorVariation: 0.3
-    - _ColorVariationScale: 1.5
+    - _ColorVariation: 1
+    - _ColorVariationScale: 3
     - _Cull: 2
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
@@ -102,20 +102,20 @@ Material:
     - _DstBlend: 0
     - _DstBlendAlpha: 0
     - _EnvironmentReflections: 1
-    - _FakeNormalBlend: 0.6
+    - _FakeNormalBlend: 0.682
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
-    - _HighlightSharpness: 0.5
-    - _HighlightStrength: 0.5
-    - _LightColorInfluence: 0.6
+    - _HighlightSharpness: 0.62
+    - _HighlightStrength: 0.332
+    - _LightColorInfluence: 0.702
     - _Metallic: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.005
     - _QueueOffset: 0
     - _ReceiveShadows: 1
-    - _ShadowSharpness: 0.5
-    - _ShadowStrength: 0.6
+    - _ShadowSharpness: 0.444
+    - _ShadowStrength: 0.615
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
@@ -123,8 +123,8 @@ Material:
     - _SrcBlendAlpha: 1
     - _Surface: 0
     - _WorkflowMode: 1
-    - _ZGradientFactor: 0.04
-    - _ZGradientPos: 0.3
+    - _ZGradientFactor: 0.014
+    - _ZGradientPos: 2
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
