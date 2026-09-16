@@ -79699,7 +79699,7 @@ MonoBehaviour:
   m_MinValue: -80
   m_MaxValue: 0
   m_WholeNumbers: 0
-  m_Value: 0
+  m_Value: -32
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -115538,6 +115538,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4096
   offsetHorizontal: 0.3
+  distanciaHorizontalPalanque: 0.5
+  deslocamentoVerticalPalanque: 0.15
   distanciaRaycast: 20
   corrigirProfundidadeZ: 1
   alcanceCorrecaoZ: 100
@@ -121867,7 +121869,7 @@ CharacterController:
   m_Enabled: 1
   serializedVersion: 3
   m_Height: 2
-  m_Radius: 0.1
+  m_Radius: 0.02
   m_SlopeLimit: 45
   m_StepOffset: 0.3
   m_SkinWidth: 0.08

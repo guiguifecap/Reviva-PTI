@@ -1,5 +1,4 @@
-﻿
-using UnityEngine;
+﻿using UnityEngine;
 using TMPro;
 
 public class Degrais : MonoBehaviour
@@ -33,6 +32,13 @@ public class Degrais : MonoBehaviour
 
     [Header("Distância horizontal das pedras")]
     public float offsetHorizontal = 0.30f;
+
+    [Header("Posicionamento do Palanque (Ponto de Descanso)")]
+    [Tooltip("Distância horizontal, para a DIREITA da pedra do degrau de descanso, onde buscamos a superfície da montanha para grudar o palanque/casa. Ajuste para ficar alcançável (na mão ou caindo em cima) mas longe o suficiente para não bater a cabeça durante a subida.")]
+    public float distanciaHorizontalPalanque = 0.5f;
+
+    [Tooltip("Deslocamento vertical (relativo à pedra do ponto de descanso) onde buscamos a superfície da montanha para o palanque/casa. Um valor pequeno e positivo evita que o palanque fique exatamente na mesma altura da pedra de apoio.")]
+    public float deslocamentoVerticalPalanque = 0.15f;
 
     [Header("Distância do raycast")]
     public float distanciaRaycast = 20f;
@@ -80,6 +86,13 @@ public class Degrais : MonoBehaviour
     // o jogador poder escalar) e o palanque/casa nasce junto,
     // no mesmo ponto, apenas como referência/decoração de
     // descanso.
+    //
+    // POSICIONAMENTO DO PALANQUE/CASA (Z): em vez de confiar na
+    // posição Z local do Root dentro do prefab, buscamos com
+    // raycast (igual às pedras) a superfície real da montanha um
+    // pouco à direita e acima da pedra de descanso, e o palanque
+    // gruda nela. O eixo Z do Root é ignorado — só X e Y do Root
+    // são usados para alinhar o objeto ao ponto encontrado.
     // =========================================================
     const string NomeRootCasa = "Casa_Root";
     const string NomeRootPalanque = "Palanque_Root";
@@ -278,8 +291,8 @@ public class Degrais : MonoBehaviour
 
             // =========================================================
             // PALANQUE / CASA — objeto ADICIONAL, instanciado JUNTO
-            // com a pedra (não no lugar dela), usando seu próprio
-            // Root como referência de posicionamento.
+            // com a pedra (não no lugar dela). Gruda na montanha via
+            // raycast, à direita da pedra, ignorando o Z do Root.
             // =========================================================
 
             serieAtual++;
@@ -324,13 +337,24 @@ public class Degrais : MonoBehaviour
             Quaternion rotExtra =
                 prefabExtra.transform.rotation;
 
-            Vector3 posicaoInstanciacaoExtra =
-                CalcularPosicaoInstanciacaoPeloRoot(
+            if (!TentarPosicionarExtraNaMontanha(
                     prefabExtra,
                     nomeRootExtra,
                     posicaoPedra,
-                    rotExtra
-                );
+                    rotExtra,
+                    out Vector3 posicaoInstanciacaoExtra))
+            {
+                // Fallback: se não achamos superfície à direita da
+                // pedra, cai no método antigo (offset puro pelo
+                // Root) para garantir que o objeto seja instanciado.
+                posicaoInstanciacaoExtra =
+                    CalcularPosicaoInstanciacaoPeloRoot(
+                        prefabExtra,
+                        nomeRootExtra,
+                        posicaoPedra,
+                        rotExtra
+                    );
+            }
 
             Instantiate(
                 prefabExtra,
@@ -379,13 +403,21 @@ public class Degrais : MonoBehaviour
                     ? NomeRootCasa
                     : NomeRootPalanque;
 
-                Vector3 posicaoInstanciacaoFallback =
-                    CalcularPosicaoInstanciacaoPeloRoot(
+                if (!TentarPosicionarExtraNaMontanha(
                         prefabFinalFallback,
                         rootFallback,
                         posFallback,
-                        rotFallback
-                    );
+                        rotFallback,
+                        out Vector3 posicaoInstanciacaoFallback))
+                {
+                    posicaoInstanciacaoFallback =
+                        CalcularPosicaoInstanciacaoPeloRoot(
+                            prefabFinalFallback,
+                            rootFallback,
+                            posFallback,
+                            rotFallback
+                        );
+                }
 
                 Instantiate(
                     prefabFinalFallback,
@@ -421,6 +453,74 @@ public class Degrais : MonoBehaviour
         Debug.Log(
             $"[Degrais] {index} pedras geradas em {serieAtual} série(s)."
         );
+    }
+
+    // =========================================================
+    // POSICIONAMENTO DO PALANQUE/CASA NA MONTANHA
+    // =========================================================
+    //
+    // Busca a superfície real da montanha (com raycast, igual às
+    // pedras) um pouco à direita e acima da pedra do ponto de
+    // descanso. O objeto "gruda" nessa superfície: o Z final vem
+    // sempre do raycast (com a mesma correção de profundidade
+    // usada nas pedras), nunca da posição Z local do Root dentro
+    // do prefab.
+    //
+    // 'distanciaHorizontalPalanque' e 'deslocamentoVerticalPalanque'
+    // controlam o quão longe o palanque fica: perto o suficiente
+    // para alcançar (na mão ou caindo em cima), longe o suficiente
+    // para não bater a cabeça durante a subida.
+    // =========================================================
+
+    bool TentarPosicionarExtraNaMontanha(
+        GameObject prefab,
+        string nomeDoRoot,
+        Vector3 posicaoPedraReferencia,
+        Quaternion rotacao,
+        out Vector3 posicaoInstanciacao)
+    {
+        posicaoInstanciacao = posicaoPedraReferencia;
+
+        float xCandidato =
+            posicaoPedraReferencia.x +
+            Mathf.Abs(distanciaHorizontalPalanque);
+
+        float yCandidato =
+            posicaoPedraReferencia.y +
+            deslocamentoVerticalPalanque;
+
+        Vector3 centroBusca =
+            new Vector3(
+                xCandidato,
+                yCandidato,
+                posicaoPedraReferencia.z
+            );
+
+        if (!TentarEncontrarSuperficie(centroBusca, out RaycastHit hit))
+        {
+            Debug.LogWarning(
+                $"[Degrais] Não encontrei superfície da montanha para grudar o palanque/casa perto de {centroBusca}. " +
+                "Usando posicionamento pelo Root como fallback."
+            );
+
+            return false;
+        }
+
+        Vector3 posicaoAlvo =
+            new Vector3(xCandidato, yCandidato, hit.point.z);
+
+        posicaoAlvo =
+            CorrigirProfundidadeZSeNecessario(posicaoAlvo);
+
+        posicaoInstanciacao =
+            CalcularPosicaoInstanciacaoPeloRootIgnorandoZ(
+                prefab,
+                nomeDoRoot,
+                posicaoAlvo,
+                rotacao
+            );
+
+        return true;
     }
 
     // =========================================================
@@ -492,6 +592,74 @@ public class Degrais : MonoBehaviour
         // fique exatamente na posição desejada.
         return posicaoAlvo -
                deslocamentoNoMundo;
+    }
+
+    // =========================================================
+    // ROOT DE REFERÊNCIA IGNORANDO O EIXO Z
+    // =========================================================
+    //
+    // Igual a CalcularPosicaoInstanciacaoPeloRoot, mas o Z final
+    // é sempre o de 'posicaoAlvo' (a superfície encontrada por
+    // raycast). Só os componentes X e Y do offset do Root são
+    // aplicados — o Z local do Root dentro do prefab é ignorado,
+    // porque quem define a profundidade é a montanha, não o
+    // prefab.
+    // =========================================================
+
+    Vector3 CalcularPosicaoInstanciacaoPeloRootIgnorandoZ(
+        GameObject prefab,
+        string nomeDoRoot,
+        Vector3 posicaoAlvo,
+        Quaternion rotacao)
+    {
+        if (prefab == null || string.IsNullOrEmpty(nomeDoRoot))
+            return posicaoAlvo;
+
+        Transform root = null;
+
+        Transform[] transforms =
+            prefab.GetComponentsInChildren<Transform>(true);
+
+        foreach (Transform t in transforms)
+        {
+            if (t.name == nomeDoRoot)
+            {
+                root = t;
+                break;
+            }
+        }
+
+        if (root == null)
+        {
+            Debug.LogWarning(
+                $"[Degrais] O prefab '{prefab.name}' não possui " +
+                $"um Transform chamado '{nomeDoRoot}'. " +
+                "O prefab será instanciado normalmente."
+            );
+
+            return posicaoAlvo;
+        }
+
+        Vector3 rootLocal =
+            prefab.transform.InverseTransformPoint(
+                root.position
+            );
+
+        Vector3 deslocamentoNoMundo =
+            rotacao *
+            Vector3.Scale(
+                prefab.transform.localScale,
+                rootLocal
+            );
+
+        Vector3 posicaoFinal =
+            posicaoAlvo - deslocamentoNoMundo;
+
+        // O Z nunca vem do Root — sempre da superfície encontrada
+        // na montanha.
+        posicaoFinal.z = posicaoAlvo.z;
+
+        return posicaoFinal;
     }
 
     // ─────────────────────────────────────────────
