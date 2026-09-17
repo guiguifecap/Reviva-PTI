@@ -33,20 +33,67 @@ public class Degrais : MonoBehaviour
     [Header("Distância horizontal das pedras")]
     public float offsetHorizontal = 0.30f;
 
-    [Header("Posicionamento do Palanque (Ponto de Descanso)")]
-    [Tooltip("Distância horizontal, para a DIREITA da pedra do degrau de descanso, onde buscamos a superfície da montanha para grudar o palanque/casa. Ajuste para ficar alcançável (na mão ou caindo em cima) mas longe o suficiente para não bater a cabeça durante a subida.")]
-    public float distanciaHorizontalPalanque = 0.5f;
-
-    [Tooltip("Deslocamento vertical (relativo à pedra do ponto de descanso) onde buscamos a superfície da montanha para o palanque/casa. Um valor pequeno e positivo evita que o palanque fique exatamente na mesma altura da pedra de apoio.")]
-    public float deslocamentoVerticalPalanque = 0.15f;
-
     [Header("Distância do raycast")]
     public float distanciaRaycast = 20f;
 
     [Header("Correção de profundidade (Z)")]
+    [Tooltip("Aplica-se APENAS às pedras de escalada. O palanque e a casa nunca passam por esta correção — eles são instanciados exatamente onde o Root manda, sem nenhum ajuste automático.")]
     public bool corrigirProfundidadeZ = true;
     public float alcanceCorrecaoZ = 100f;
     public float folgaCorrecaoZ = 0.05f;
+
+    // =========================================================
+    // LADO FIXO DO PALANQUE
+    // =========================================================
+    //
+    // As pedras alternam de lado a cada degrau (zigue-zague):
+    // um degrau nasce em centroX + offsetHorizontal, o seguinte
+    // em centroX - offsetHorizontal.
+    //
+    // Como o ponto de descanso pode cair num índice PAR numa
+    // série e num índice ÍMPAR na outra, o palanque acabava
+    // nascendo ora de um lado, ora do outro — por isso um ficava
+    // colado nas pedras e o outro parecia "no meio do caminho".
+    //
+    // Com 'fixarLadoDoPalanque' ligado, o palanque SEMPRE usa o
+    // mesmo lado do zigue-zague, independente do índice em que o
+    // ponto de descanso caiu.
+    //
+    // IMPORTANTE: só o X é trocado. O Y e o Z (a profundidade,
+    // já resolvida pelo raycast + correção de profundidade da
+    // pedra) permanecem EXATAMENTE os mesmos. E isso vale só
+    // para o palanque — a casa (plataforma final) não é afetada
+    // por nada disto.
+    // =========================================================
+    [Header("Lado fixo do palanque")]
+    [Tooltip("Se ligado, o palanque sempre nasce do mesmo lado do zigue-zague, em vez de alternar conforme o degrau em que a série terminou. Só altera o eixo X — profundidade (Z) e altura (Y) ficam intactas. Não afeta a casa.")]
+    public bool fixarLadoDoPalanque = true;
+
+    [Tooltip("Qual lado do zigue-zague o palanque deve usar sempre. Marque para usar o lado positivo (centroX + distância); desmarque para o lado negativo (centroX - distância).")]
+    public bool palanqueNoLadoPositivo = true;
+
+    [Tooltip(
+        "Se ligado, o palanque usa a 'Distancia Horizontal Palanque' abaixo em vez do " +
+        "'Offset Horizontal' das pedras. Serve para afastar ou aproximar o palanque da " +
+        "coluna de pedras sem mexer no zigue-zague das pedras em si."
+    )]
+    public bool usarDistanciaPropriaDoPalanque = false;
+
+    [Tooltip(
+        "Distância horizontal do palanque até o centro do percurso, em metros. " +
+        "Só é usada quando 'Usar Distancia Propria Do Palanque' está ligado. " +
+        "Valor menor = palanque mais perto do centro (mais perto das pedras do lado oposto); " +
+        "valor maior = palanque mais afastado para fora."
+    )]
+    public float distanciaHorizontalPalanque = 0.30f;
+
+    [Tooltip(
+        "Ajuste fino aplicado ao palanque DEPOIS de tudo o mais, em metros. " +
+        "X afasta/aproxima na horizontal, Y sobe/desce, Z controla a profundidade " +
+        "(negativo puxa para fora da rocha, positivo empurra para dentro). " +
+        "Deixe em zero para não alterar nada. Não afeta a casa."
+    )]
+    public Vector3 ajusteFinoPalanque = Vector3.zero;
 
     [Header("Segurança")]
     public float distanciaVerticalMinima = 0.05f;
@@ -77,22 +124,18 @@ public class Degrais : MonoBehaviour
     // usa "Palanque_Root" como ponto de referência dentro do
     // prefab. Nenhum dos dois Transforms é movido ou alterado —
     // apenas usados para calcular onde o prefab deve nascer para
-    // que esse Transform fique exatamente na posição desejada
-    // (a posição da "pedra" daquele degrau).
+    // que esse Transform fique exatamente na posição da pedra
+    // daquele degrau.
     //
-    // IMPORTANTE: o palanque/casa é um objeto ADICIONAL, nunca
-    // substitui a pedra de escalada. Nos pontos de descanso, a
-    // pedra normal continua sendo instanciada normalmente (para
-    // o jogador poder escalar) e o palanque/casa nasce junto,
-    // no mesmo ponto, apenas como referência/decoração de
-    // descanso.
+    // O palanque/casa é um objeto ADICIONAL: a pedra de escalada
+    // continua nascendo normalmente naquele ponto.
     //
-    // POSICIONAMENTO DO PALANQUE/CASA (Z): em vez de confiar na
-    // posição Z local do Root dentro do prefab, buscamos com
-    // raycast (igual às pedras) a superfície real da montanha um
-    // pouco à direita e acima da pedra de descanso, e o palanque
-    // gruda nela. O eixo Z do Root é ignorado — só X e Y do Root
-    // são usados para alinhar o objeto ao ponto encontrado.
+    // SEM NENHUM AJUSTE AUTOMÁTICO: o palanque/casa não passa
+    // por raycast de superfície, nem por correção de profundidade,
+    // nem por empurrão para fora da rocha. Ele nasce exatamente
+    // onde o Root determina, com a rotação ORIGINAL do prefab.
+    // Todo o posicionamento fino é feito por você, movendo o
+    // Casa_Root / Palanque_Root dentro do próprio prefab.
     // =========================================================
     const string NomeRootCasa = "Casa_Root";
     const string NomeRootPalanque = "Palanque_Root";
@@ -233,7 +276,6 @@ public class Degrais : MonoBehaviour
 
         bool teveAlgumaPedra = false;
         Vector3 ultimaPosicaoValida = Vector3.zero;
-        Vector3 ultimaNormalValida = Vector3.up;
 
         while (y < alturaFinal && seguranca < maxPedras)
         {
@@ -255,12 +297,12 @@ public class Degrais : MonoBehaviour
 
             Vector3 posicaoPedra = new Vector3(x, y, hit.point.z);
 
+            // A correção de profundidade vale SÓ para as pedras de escalada.
             posicaoPedra =
                 CorrigirProfundidadeZSeNecessario(posicaoPedra);
 
             teveAlgumaPedra = true;
             ultimaPosicaoValida = posicaoPedra;
-            ultimaNormalValida = hit.normal;
 
             // =========================================================
             // PEDRA DE ESCALADA — SEMPRE nasce, em todo ponto,
@@ -291,8 +333,8 @@ public class Degrais : MonoBehaviour
 
             // =========================================================
             // PALANQUE / CASA — objeto ADICIONAL, instanciado JUNTO
-            // com a pedra (não no lugar dela). Gruda na montanha via
-            // raycast, à direita da pedra, ignorando o Z do Root.
+            // com a pedra. Nasce exatamente onde o Root manda, com a
+            // rotação ORIGINAL do prefab, sem nenhum ajuste automático.
             // =========================================================
 
             serieAtual++;
@@ -334,33 +376,17 @@ public class Degrais : MonoBehaviour
                 continue;
             }
 
-            Quaternion rotExtra =
-                prefabExtra.transform.rotation;
+            // Só o PALANQUE recebe o lado fixo. A casa (plataforma
+            // final) usa a posição da pedra sem nenhuma alteração.
+            Vector3 posicaoExtra =
+                (nomeRootExtra == NomeRootPalanque)
+                ? AplicarLadoFixoDoPalanque(posicaoPedra, centroX)
+                : posicaoPedra;
 
-            if (!TentarPosicionarExtraNaMontanha(
-                    prefabExtra,
-                    nomeRootExtra,
-                    posicaoPedra,
-                    rotExtra,
-                    out Vector3 posicaoInstanciacaoExtra))
-            {
-                // Fallback: se não achamos superfície à direita da
-                // pedra, cai no método antigo (offset puro pelo
-                // Root) para garantir que o objeto seja instanciado.
-                posicaoInstanciacaoExtra =
-                    CalcularPosicaoInstanciacaoPeloRoot(
-                        prefabExtra,
-                        nomeRootExtra,
-                        posicaoPedra,
-                        rotExtra
-                    );
-            }
-
-            Instantiate(
+            InstanciarExtraPeloRoot(
                 prefabExtra,
-                posicaoInstanciacaoExtra,
-                rotExtra,
-                transform
+                nomeRootExtra,
+                posicaoExtra
             );
 
             if (ehUltimaSerie)
@@ -369,12 +395,6 @@ public class Degrais : MonoBehaviour
 
         // ─────────────────────────────────────────────
         // REDE DE SEGURANÇA DO PONTO FINAL
-        // ─────────────────────────────────────────────
-        // A última pedra de escalada já foi instanciada dentro do
-        // laço acima (ela nunca deixa de nascer). Aqui garantimos
-        // apenas que a casa/palanque final também exista, caso a
-        // altura real da montanha não tenha permitido completar
-        // todas as séries.
         // ─────────────────────────────────────────────
 
         if (!plataformaFinalGerada && teveAlgumaPedra)
@@ -386,44 +406,21 @@ public class Degrais : MonoBehaviour
 
             if (prefabFinalFallback != null)
             {
-                Vector3 posFallback =
-                    ultimaPosicaoValida +
-                    ultimaNormalValida * 0.03f;
-
-                posFallback =
-                    CorrigirProfundidadeZSeNecessario(
-                        posFallback
-                    );
-
-                Quaternion rotFallback =
-                    prefabFinalFallback.transform.rotation;
-
                 string rootFallback =
                     prefabFinalFallback == plataformaFinal
                     ? NomeRootCasa
                     : NomeRootPalanque;
 
-                if (!TentarPosicionarExtraNaMontanha(
-                        prefabFinalFallback,
-                        rootFallback,
-                        posFallback,
-                        rotFallback,
-                        out Vector3 posicaoInstanciacaoFallback))
-                {
-                    posicaoInstanciacaoFallback =
-                        CalcularPosicaoInstanciacaoPeloRoot(
-                            prefabFinalFallback,
-                            rootFallback,
-                            posFallback,
-                            rotFallback
-                        );
-                }
+                // mesma regra: só o palanque recebe o lado fixo
+                Vector3 posicaoFallback =
+                    (rootFallback == NomeRootPalanque)
+                    ? AplicarLadoFixoDoPalanque(ultimaPosicaoValida, posicaoComeco.position.x)
+                    : ultimaPosicaoValida;
 
-                Instantiate(
+                InstanciarExtraPeloRoot(
                     prefabFinalFallback,
-                    posicaoInstanciacaoFallback,
-                    rotFallback,
-                    transform
+                    rootFallback,
+                    posicaoFallback
                 );
 
                 plataformaFinalGerada = true;
@@ -456,71 +453,92 @@ public class Degrais : MonoBehaviour
     }
 
     // =========================================================
-    // POSICIONAMENTO DO PALANQUE/CASA NA MONTANHA
+    // LADO FIXO DO PALANQUE
     // =========================================================
     //
-    // Busca a superfície real da montanha (com raycast, igual às
-    // pedras) um pouco à direita e acima da pedra do ponto de
-    // descanso. O objeto "gruda" nessa superfície: o Z final vem
-    // sempre do raycast (com a mesma correção de profundidade
-    // usada nas pedras), nunca da posição Z local do Root dentro
-    // do prefab.
+    // Troca APENAS o X da posição, para o lado escolhido do
+    // zigue-zague. O Y e o Z são devolvidos exatamente como
+    // vieram — ou seja, a profundidade do palanque continua
+    // sendo a mesma que a pedra daquele degrau já tinha, depois
+    // do raycast e da correção de profundidade.
     //
-    // 'distanciaHorizontalPalanque' e 'deslocamentoVerticalPalanque'
-    // controlam o quão longe o palanque fica: perto o suficiente
-    // para alcançar (na mão ou caindo em cima), longe o suficiente
-    // para não bater a cabeça durante a subida.
+    // Se 'fixarLadoDoPalanque' estiver desligado, o lado não é
+    // travado (comportamento antigo, alternando de lado), mas o
+    // 'Ajuste Fino Palanque' continua sendo aplicado.
+    //
+    // A distância horizontal usada é a das pedras
+    // ('Offset Horizontal'), a não ser que
+    // 'Usar Distancia Propria Do Palanque' esteja ligado — aí
+    // vale a 'Distancia Horizontal Palanque'.
+    //
+    // Por último, o 'Ajuste Fino Palanque' é somado nos três
+    // eixos, para acerto no olho pelo Inspector. Tudo isto vale
+    // só para o palanque; a casa não é afetada.
     // =========================================================
-
-    bool TentarPosicionarExtraNaMontanha(
-        GameObject prefab,
-        string nomeDoRoot,
-        Vector3 posicaoPedraReferencia,
-        Quaternion rotacao,
-        out Vector3 posicaoInstanciacao)
+    Vector3 AplicarLadoFixoDoPalanque(Vector3 posicaoPedra, float centroX)
     {
-        posicaoInstanciacao = posicaoPedraReferencia;
+        Vector3 resultado = posicaoPedra;
 
-        float xCandidato =
-            posicaoPedraReferencia.x +
-            Mathf.Abs(distanciaHorizontalPalanque);
-
-        float yCandidato =
-            posicaoPedraReferencia.y +
-            deslocamentoVerticalPalanque;
-
-        Vector3 centroBusca =
-            new Vector3(
-                xCandidato,
-                yCandidato,
-                posicaoPedraReferencia.z
-            );
-
-        if (!TentarEncontrarSuperficie(centroBusca, out RaycastHit hit))
+        if (fixarLadoDoPalanque)
         {
-            Debug.LogWarning(
-                $"[Degrais] Não encontrei superfície da montanha para grudar o palanque/casa perto de {centroBusca}. " +
-                "Usando posicionamento pelo Root como fallback."
-            );
+            float distancia = usarDistanciaPropriaDoPalanque
+                ? distanciaHorizontalPalanque
+                : offsetHorizontal;
 
-            return false;
+            float xFixo = palanqueNoLadoPositivo
+                ? centroX + distancia
+                : centroX - distancia;
+
+            resultado = new Vector3(
+                xFixo,
+                posicaoPedra.y,
+                posicaoPedra.z
+            );
         }
 
-        Vector3 posicaoAlvo =
-            new Vector3(xCandidato, yCandidato, hit.point.z);
+        return resultado + ajusteFinoPalanque;
+    }
 
-        posicaoAlvo =
-            CorrigirProfundidadeZSeNecessario(posicaoAlvo);
+    // =========================================================
+    // INSTANCIA O PALANQUE / CASA PELO ROOT
+    // =========================================================
+    //
+    // Calcula onde o prefab deve nascer para que o Root
+    // (Casa_Root / Palanque_Root) fique EXATAMENTE na posição
+    // informada, e instancia com a rotação ORIGINAL do prefab.
+    //
+    // Nenhuma alteração automática é feita: sem raycast de
+    // superfície, sem correção de profundidade, sem empurrão para
+    // fora da rocha, sem mexer na rotação. Se quiser ajustar como
+    // o palanque/casa encosta na montanha, mova o Root dentro do
+    // próprio prefab.
+    // =========================================================
 
-        posicaoInstanciacao =
-            CalcularPosicaoInstanciacaoPeloRootIgnorandoZ(
+    void InstanciarExtraPeloRoot(
+        GameObject prefab,
+        string nomeDoRoot,
+        Vector3 posicaoAlvo)
+    {
+        if (prefab == null)
+            return;
+
+        // A rotação é SEMPRE a do prefab, nunca a da pedra.
+        Quaternion rotacaoOriginal = prefab.transform.rotation;
+
+        Vector3 posicaoInstanciacao =
+            CalcularPosicaoInstanciacaoPeloRoot(
                 prefab,
                 nomeDoRoot,
                 posicaoAlvo,
-                rotacao
+                rotacaoOriginal
             );
 
-        return true;
+        Instantiate(
+            prefab,
+            posicaoInstanciacao,
+            rotacaoOriginal,
+            transform
+        );
     }
 
     // =========================================================
@@ -530,12 +548,12 @@ public class Degrais : MonoBehaviour
     // NÃO altera o Transform do Root procurado.
     //
     // Procura, dentro do prefab, um Transform filho com o nome
-    // informado (ex.: "Casa_Root" ou "Palanque_Root") e calcula
-    // qual deve ser a posição do objeto raiz do prefab para que
-    // esse Transform fique exatamente na posição desejada.
+    // informado e calcula qual deve ser a posição do objeto raiz
+    // do prefab para que esse Transform fique exatamente na
+    // posição desejada.
     //
     // Se o Transform não for encontrado, o prefab é instanciado
-    // normalmente na posição desejada (comportamento antigo).
+    // normalmente na posição desejada.
     // =========================================================
 
     Vector3 CalcularPosicaoInstanciacaoPeloRoot(
@@ -572,8 +590,8 @@ public class Degrais : MonoBehaviour
             return posicaoAlvo;
         }
 
-        // Pega a posição do Root em relação ao pivot
-        // do prefab, SEM alterar o Root.
+        // Posição do Root em relação ao pivot do prefab,
+        // SEM alterar o Root.
         Vector3 rootLocal =
             prefab.transform.InverseTransformPoint(
                 root.position
@@ -594,76 +612,8 @@ public class Degrais : MonoBehaviour
                deslocamentoNoMundo;
     }
 
-    // =========================================================
-    // ROOT DE REFERÊNCIA IGNORANDO O EIXO Z
-    // =========================================================
-    //
-    // Igual a CalcularPosicaoInstanciacaoPeloRoot, mas o Z final
-    // é sempre o de 'posicaoAlvo' (a superfície encontrada por
-    // raycast). Só os componentes X e Y do offset do Root são
-    // aplicados — o Z local do Root dentro do prefab é ignorado,
-    // porque quem define a profundidade é a montanha, não o
-    // prefab.
-    // =========================================================
-
-    Vector3 CalcularPosicaoInstanciacaoPeloRootIgnorandoZ(
-        GameObject prefab,
-        string nomeDoRoot,
-        Vector3 posicaoAlvo,
-        Quaternion rotacao)
-    {
-        if (prefab == null || string.IsNullOrEmpty(nomeDoRoot))
-            return posicaoAlvo;
-
-        Transform root = null;
-
-        Transform[] transforms =
-            prefab.GetComponentsInChildren<Transform>(true);
-
-        foreach (Transform t in transforms)
-        {
-            if (t.name == nomeDoRoot)
-            {
-                root = t;
-                break;
-            }
-        }
-
-        if (root == null)
-        {
-            Debug.LogWarning(
-                $"[Degrais] O prefab '{prefab.name}' não possui " +
-                $"um Transform chamado '{nomeDoRoot}'. " +
-                "O prefab será instanciado normalmente."
-            );
-
-            return posicaoAlvo;
-        }
-
-        Vector3 rootLocal =
-            prefab.transform.InverseTransformPoint(
-                root.position
-            );
-
-        Vector3 deslocamentoNoMundo =
-            rotacao *
-            Vector3.Scale(
-                prefab.transform.localScale,
-                rootLocal
-            );
-
-        Vector3 posicaoFinal =
-            posicaoAlvo - deslocamentoNoMundo;
-
-        // O Z nunca vem do Root — sempre da superfície encontrada
-        // na montanha.
-        posicaoFinal.z = posicaoAlvo.z;
-
-        return posicaoFinal;
-    }
-
     // ─────────────────────────────────────────────
-    // CORREÇÃO DE PROFUNDIDADE (Z)
+    // CORREÇÃO DE PROFUNDIDADE (Z) — SÓ PARA AS PEDRAS
     // ─────────────────────────────────────────────
 
     Vector3 CorrigirProfundidadeZSeNecessario(
