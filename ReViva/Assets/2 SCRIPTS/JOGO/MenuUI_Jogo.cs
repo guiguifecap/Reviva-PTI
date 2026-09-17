@@ -19,12 +19,12 @@ public class MenuUI_Jogo : MonoBehaviour
     private bool advancedDifficulty = false;
 
 
-    [Header("Configuração de Séries (Repetições)")]
-    [Tooltip("Input field para definir o número de séries. É a ÚNICA fonte desse valor — o Degrais nunca decide isso sozinho.")]
-    public TMP_InputField inputNumeroDeSeries;
-    [Tooltip("Input field para definir quantas pedras por série. É a ÚNICA fonte desse valor — o Degrais nunca decide isso sozinho.")]
-    public TMP_InputField inputPedrasPorDescanso;
-    [Tooltip("Valor usado no campo 'Número de Séries' caso ele esteja vazio na primeira vez que o jogo abre.")]
+    //[Header("Configuração de Séries (Repetições)")]
+    //[Tooltip("Input field para definir o número de séries. É a ÚNICA fonte desse valor — o Degrais nunca decide isso sozinho.")]
+   //public TMP_InputField inputNumeroDeSeries;
+   //[Tooltip("Input field para definir quantas pedras por série. É a ÚNICA fonte desse valor — o Degrais nunca decide isso sozinho.")]
+   //public TMP_InputField inputPedrasPorDescanso;
+   //[Tooltip("Valor usado no campo 'Número de Séries' caso ele esteja vazio na primeira vez que o jogo abre.")]
     public int padraoNumeroDeSeries = 3;
     [Tooltip("Valor usado no campo 'Pedras Por Descanso' caso ele esteja vazio na primeira vez que o jogo abre.")]
     public int padraoPedrasPorDescanso = 5;
