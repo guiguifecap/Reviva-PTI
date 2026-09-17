@@ -38,14 +38,17 @@ public class MenuUI_Jogo : MonoBehaviour
     public Slider barraProgressoCalibracao;
     public Toggle statusToggle;
 
-    [Header("Tempo Real")]
-    public TextMeshProUGUI usoAtualDireito;
-    public TextMeshProUGUI usoAtualEsquerdo;
+    // DEPOIS: só 2 textos, um por lado, usados tanto para tempo real quanto para resultado final
+    [Header("Desempenho (Tempo Real + Resultado Final)")]
+    [Tooltip("Enquanto a sessão está rodando, mostra o uso em tempo real do braço direito. Ao finalizar a sessão, passa a mostrar o resultado/diagnóstico desse lado.")]
+    public TextMeshProUGUI textoDireito;
 
-    [Header("Resultados Clínicos")]
-    public TextMeshProUGUI resultadoDireito;
-    public TextMeshProUGUI resultadoEsquerdo;
-    public TextMeshProUGUI diagnostico;
+    [Tooltip("Enquanto a sessão está rodando, mostra o uso em tempo real do braço esquerdo. Ao finalizar a sessão, passa a mostrar o resultado/diagnóstico desse lado.")]
+    public TextMeshProUGUI textoEsquerdo;
+
+    // Controla se os textos devem seguir atualizando em tempo real (false)
+    // ou se já foram travados no resultado final da sessão (true).
+    private bool sessaoFinalizada = false;
 
     [Header("Cenas")]
     public string cenaMenu = "Menu";
@@ -152,8 +155,6 @@ public class MenuUI_Jogo : MonoBehaviour
         AtualizarStatus();
         AtualizarTempoReal();
 
-
-
         if (Input.GetKeyDown(KeyCode.Escape) && isPause == false)
         {
             PanelPause.SetActive(true);
@@ -195,6 +196,8 @@ public class MenuUI_Jogo : MonoBehaviour
     // ── Calibração ──────────────────────────────────────────
     public void CalibrarPaciente()
     {
+        sessaoFinalizada = false;
+
         if (goniometria != null)
             goniometria.IniciarCalibracaoManual();
     }
@@ -227,9 +230,17 @@ public class MenuUI_Jogo : MonoBehaviour
     // ── Tempo real ──────────────────────────────────────────
     void AtualizarTempoReal()
     {
+        // Não sobrescreve os textos depois que a sessão já foi finalizada —
+        // aí eles ficam travados mostrando o diagnóstico.
+        if (sessaoFinalizada) return;
+
         if (!goniometria.calibrado) return;
-        usoAtualDireito.text = $"Dir: {goniometria.GetUsoAtualDir():F0}%";
-        usoAtualEsquerdo.text = $"Esq: {goniometria.GetUsoAtualEsq():F0}%";
+
+        if (textoDireito != null)
+            textoDireito.text = $"Dir: {goniometria.GetUsoAtualDir():F0}%";
+
+        if (textoEsquerdo != null)
+            textoEsquerdo.text = $"Esq: {goniometria.GetUsoAtualEsq():F0}%";
     }
 
     // ── Dificuldade ─────────────────────────────────────────
@@ -414,10 +425,28 @@ public class MenuUI_Jogo : MonoBehaviour
     public void FinalizarSessao()
     {
         if (goniometria == null) return;
+
         var r = goniometria.GetResultados();
-        resultadoDireito.text = $"Direito: {r.percDireito:F1}% ({r.alcanceMaximoCM:F0}cm máx)";
-        resultadoEsquerdo.text = $"Esquerdo: {r.percEsquerdo:F1}% ({r.alcanceMaximoCM:F0}cm máx)";
-        diagnostico.text = r.diagnostico;
+
+        sessaoFinalizada = true;
+
+        if (textoDireito != null)
+            textoDireito.text =
+                $"Direito: {r.percDireito:F1}% ({r.alcanceMaximoCM:F0}cm máx)\n{r.diagnostico}";
+
+        if (textoEsquerdo != null)
+            textoEsquerdo.text =
+                $"Esquerdo: {r.percEsquerdo:F1}% ({r.alcanceMaximoCM:F0}cm máx)\n{r.diagnostico}";
+    }
+
+    /// <summary>
+    /// Chame isso se quiser destravar os textos e voltar a mostrar
+    /// tempo real (por exemplo, ao recalibrar ou iniciar uma nova sessão
+    /// sem trocar de cena).
+    /// </summary>
+    public void ReiniciarParaNovaSessao()
+    {
+        sessaoFinalizada = false;
     }
 
     // ── Toggle alcance ──────────────────────────────────────

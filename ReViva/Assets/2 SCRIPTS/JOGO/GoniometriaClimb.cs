@@ -1,25 +1,18 @@
-// GoniometriaClimb.cs (CALIBRAÇÃO CORRIGIDA PARA ALCANCE REAL)
+// GoniometriaClimb.cs (CALIBRAÇÃO EM ESPAÇO RELATIVO À CABEÇA)
 //
-// PROBLEMA:
-// Você estava medindo:
-// ombro → mão
+// PROBLEMA CORRIGIDO:
+// relaxRight/relaxLeft eram salvos como posição ABSOLUTA de mundo
+// (handRight.position) no momento da calibragem. No VR, o player
+// se move pelo cenário (o rig anda), então depois de qualquer
+// deslocamento a mão fica "longe" do ponto salvo só por causa do
+// movimento do corpo inteiro — não porque o braço esticou. Isso
+// fazia o uso em tempo real sempre bater perto de 100%.
 //
-// Isso mede só o braço.
-//
-// MAS no exercício de escalada/reabilitação o alcance funcional real inclui:
-// extensão de tronco + ombro + braço
-//
-// Então o certo é medir:
-// mão relaxada (baixo) → mão elevada (máximo)
-//
-// Isso normalmente dá ~120–150cm dependendo da pessoa,
-// em vez de 70–85cm.
-//
-// CALIBRAÇÃO NOVA:
-// Fase 1 = salva posição relaxada de cada mão
-// Fase 2 = mede a maior distância entre posição relaxada e posição máxima
-//
-// Isso corrige drasticamente o valor clínico.
+// CORREÇÃO:
+// Os pontos de referência agora são salvos em espaço LOCAL à
+// 'head' (InverseTransformPoint). Como a head se move junto com
+// o player, o offset mão↔cabeça continua correto não importa
+// onde o player esteja no cenário.
 
 using UnityEngine;
 
@@ -53,8 +46,13 @@ public class GoniometriaClimb : MonoBehaviour
     private int fase = 0;
     private float timer = 0f;
 
-    private Vector3 relaxRight;
-    private Vector3 relaxLeft;
+    // ─────────────────────────────────────────────
+    // Pontos de referência em espaço LOCAL À CABEÇA
+    // (não mais posições absolutas de mundo). É isso
+    // que faz eles "andarem junto" com o player no VR.
+    // ─────────────────────────────────────────────
+    private Vector3 relaxRightLocal;
+    private Vector3 relaxLeftLocal;
 
     private float maxRight = 0f;
     private float maxLeft = 0f;
@@ -69,9 +67,16 @@ public class GoniometriaClimb : MonoBehaviour
 
         if (!calibrado) return;
 
-        // Uso em tempo real = quanto da amplitude total está usando AGORA
-        alcanceAtualDir = Vector3.Distance(relaxRight, handRight.position);
-        alcanceAtualEsq = Vector3.Distance(relaxLeft, handLeft.position);
+        AtualizarUsoAtual();
+    }
+
+    void AtualizarUsoAtual()
+    {
+        Vector3 atualDirLocal = head.InverseTransformPoint(handRight.position);
+        Vector3 atualEsqLocal = head.InverseTransformPoint(handLeft.position);
+
+        alcanceAtualDir = Vector3.Distance(relaxRightLocal, atualDirLocal);
+        alcanceAtualEsq = Vector3.Distance(relaxLeftLocal, atualEsqLocal);
     }
 
     // ─────────────────────────────────────────────
@@ -107,9 +112,9 @@ public class GoniometriaClimb : MonoBehaviour
 
             if (timer >= tempoRelaxado)
             {
-                // Salva posição relaxada REAL
-                relaxRight = handRight.position;
-                relaxLeft = handLeft.position;
+                // Salva posição relaxada em espaço LOCAL da cabeça
+                relaxRightLocal = head.InverseTransformPoint(handRight.position);
+                relaxLeftLocal = head.InverseTransformPoint(handLeft.position);
 
                 timer = 0f;
                 fase = 1;
@@ -122,8 +127,11 @@ public class GoniometriaClimb : MonoBehaviour
             faseAtual = "Levante os braços o máximo possível";
             progressoCalibracao = timer / tempoMaximo;
 
-            float r = Vector3.Distance(relaxRight, handRight.position);
-            float l = Vector3.Distance(relaxLeft, handLeft.position);
+            Vector3 atualDirLocal = head.InverseTransformPoint(handRight.position);
+            Vector3 atualEsqLocal = head.InverseTransformPoint(handLeft.position);
+
+            float r = Vector3.Distance(relaxRightLocal, atualDirLocal);
+            float l = Vector3.Distance(relaxLeftLocal, atualEsqLocal);
 
             if (r > maxRight) maxRight = r;
             if (l > maxLeft) maxLeft = l;
@@ -136,11 +144,10 @@ public class GoniometriaClimb : MonoBehaviour
     }
 
     // ─────────────────────────────────────────────
-    // FINALIZAR
+    // FINALIZAR CALIBRAÇÃO
     // ─────────────────────────────────────────────
     void EncerrarCalibracao()
     {
-        // máximo detectado
         float maxDetectado = Mathf.Max(maxRight, maxLeft);
 
         // ─────────────────────────────────────────────
@@ -156,13 +163,11 @@ public class GoniometriaClimb : MonoBehaviour
 
         float ajusteClinico = 0.05f;
 
-        // alcance "real útil"
         alcanceMaximo = Mathf.Max(0f, maxDetectado - ajusteClinico);
 
         calibrando = false;
         calibrado = true;
 
-        // salva padrão = alcance TOTAL
         GameSettings.Instance.alcanceMaximoCM = alcanceMaximo * 100f;
 
         Debug.Log(
