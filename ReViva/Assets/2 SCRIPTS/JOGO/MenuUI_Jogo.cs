@@ -459,4 +459,14 @@ public class MenuUI_Jogo : MonoBehaviour
             Degrais.Instance.GerarDegraus();
     }
 
+
+    public void botaoSair()
+    {
+        SceneManager.LoadScene("Menu");
+    }
+
+    public void botaoSairEscolha()
+    {
+        SceneManager.LoadScene("MenuEscolha");
+    }
 }
