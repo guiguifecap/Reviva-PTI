@@ -11,6 +11,12 @@ public class WaterTarget : MonoBehaviour
     [Tooltip("Fires when this target gets hit")]
     public UnityEvent onHit;
 
+    [Header("Hit Reaction")]
+    [Tooltip("How long the pop + shrink animation takes")]
+    [SerializeField] private float hitAnimDuration = 0.35f;
+    [Tooltip("Optional - a particle system to spawn at the hit point (leave empty to skip)")]
+    [SerializeField] private ParticleSystem hitEffectPrefab;
+
     private enum State { Rising, Staying, Sinking }
 
     private TargetSpawner spawner;
@@ -50,6 +56,8 @@ public class WaterTarget : MonoBehaviour
 
     private void Update()
     {
+        if (isHit) return; // hit reaction coroutine is driving position/scale now
+
         stateTimer += Time.deltaTime;
 
         switch (state)
@@ -94,7 +102,7 @@ public class WaterTarget : MonoBehaviour
 
         onHit?.Invoke();
         spawner.RegisterHit();
-        Despawn();
+        StartCoroutine(HitReaction());
     }
 
     // Lets you test by just clicking the target in the editor/desktop build.
@@ -104,8 +112,66 @@ public class WaterTarget : MonoBehaviour
         Hit();
     }
 
+    /// <summary>
+    /// Little punchy pop-up, then spins and shrinks away to nothing.
+    /// Purely code-driven so it works with zero extra art/particles - assign
+    /// hitEffectPrefab if you want a particle burst layered on top later.
+    /// </summary>
+    private System.Collections.IEnumerator HitReaction()
+    {
+        Vector3 startScale = transform.localScale;
+        Quaternion startRotation = transform.rotation;
+        Vector3 startPos = transform.position;
+
+        if (hitEffectPrefab != null)
+        {
+            ParticleSystem fx = Instantiate(hitEffectPrefab, startPos, Quaternion.identity);
+            fx.Play();
+            Destroy(fx.gameObject, fx.main.duration + fx.main.startLifetime.constantMax);
+        }
+
+        Vector3 popScale = startScale * 1.3f;
+        Vector3 popPos = startPos + Vector3.up * 0.3f;
+
+        float popTime = hitAnimDuration * 0.35f;
+        float shrinkTime = hitAnimDuration - popTime;
+
+        // Quick punchy pop - scales up and lifts slightly
+        float t = 0f;
+        while (t < popTime)
+        {
+            t += Time.deltaTime;
+            float p = t / popTime;
+            transform.localScale = Vector3.Lerp(startScale, popScale, p);
+            transform.position = Vector3.Lerp(startPos, popPos, p);
+            yield return null;
+        }
+
+        // Spins while shrinking to nothing - the "disappear with style" part
+        t = 0f;
+        while (t < shrinkTime)
+        {
+            t += Time.deltaTime;
+            float p = t / shrinkTime;
+            transform.localScale = Vector3.Lerp(popScale, Vector3.zero, p);
+            transform.Rotate(Vector3.up, 720f * Time.deltaTime, Space.World);
+            yield return null;
+        }
+
+        // Reset so this instance looks normal next time it's pulled from the pool
+        transform.localScale = startScale;
+        transform.rotation = startRotation;
+
+        Despawn();
+    }
+
     private void Despawn()
     {
         spawner.ReturnTarget(this);
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        Destroy(collision.gameObject);
     }
 }

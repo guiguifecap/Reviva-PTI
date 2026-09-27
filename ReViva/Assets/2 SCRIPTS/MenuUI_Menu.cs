@@ -211,8 +211,7 @@ public class MenuUI_Menu : MonoBehaviour
         if (loadingUI != null)
             loadingUI.SetActive(true);
 
-        AsyncOperation operation =
-            SceneManager.LoadSceneAsync(cenaJogo);
+        AsyncOperation operation = SceneManager.LoadSceneAsync(cenaJogo);
 
         while (!operation.isDone)
         {

@@ -720,7 +720,7 @@ GameObject:
   - component: {fileID: 57285852}
   - component: {fileID: 57285850}
   - component: {fileID: 57285851}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cylinder (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2849,7 +2849,7 @@ GameObject:
   - component: {fileID: 187805355}
   - component: {fileID: 187805353}
   - component: {fileID: 187805354}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cylinder (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3168,7 +3168,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 200456758}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: RightSide
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3545,7 +3545,7 @@ GameObject:
   - component: {fileID: 217798933}
   - component: {fileID: 217798935}
   - component: {fileID: 217798934}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Color Affordance
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3878,7 +3878,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_InteractionManager: {fileID: 0}
   m_InteractionLayers:
-    m_Bits: 1
+    m_Bits: 2
   m_Handedness: 1
   m_AttachTransform: {fileID: 0}
   m_KeepSelectedTargetValid: 1
@@ -7259,7 +7259,7 @@ GameObject:
   - component: {fileID: 434607669}
   - component: {fileID: 434607671}
   - component: {fileID: 434607670}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Color Affordance
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -8487,7 +8487,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 461538127}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: RungSet Top
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -8812,7 +8812,7 @@ GameObject:
   - component: {fileID: 469019822}
   - component: {fileID: 469019824}
   - component: {fileID: 469019823}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Color Affordance
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -9786,7 +9786,7 @@ Rigidbody:
   m_ImplicitTensor: 1
   m_UseGravity: 0
   m_IsKinematic: 1
-  m_Interpolate: 1
+  m_Interpolate: 0
   m_Constraints: 126
   m_CollisionDetection: 2
 --- !u!64 &507793055
@@ -10482,7 +10482,7 @@ GameObject:
   - component: {fileID: 545952810}
   - component: {fileID: 545952808}
   - component: {fileID: 545952809}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cylinder (4)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -10715,7 +10715,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 572642757}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: LeftSide
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -12339,7 +12339,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 629006406}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: RungSet Bottom
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -12452,7 +12452,7 @@ GameObject:
   - component: {fileID: 644959933}
   - component: {fileID: 644959931}
   - component: {fileID: 644959932}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cylinder (4)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -15220,6 +15220,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1777930245}
     m_Modifications:
+    - target: {fileID: -3096734370509477806, guid: 19ab726a0d8d658428ca437e74efaa31, type: 3}
+      propertyPath: m_InteractionLayers.m_Bits
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 3196415393403750850, guid: 19ab726a0d8d658428ca437e74efaa31, type: 3}
       propertyPath: m_Interpolate
       value: 1
@@ -15231,6 +15235,10 @@ PrefabInstance:
     - target: {fileID: 3797268733253496727, guid: 19ab726a0d8d658428ca437e74efaa31, type: 3}
       propertyPath: m_Name
       value: pedra 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3797268733253496727, guid: 19ab726a0d8d658428ca437e74efaa31, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 3797268733253496727, guid: 19ab726a0d8d658428ca437e74efaa31, type: 3}
       propertyPath: m_TagString
@@ -16554,6 +16562,7 @@ GameObject:
   - component: {fileID: 906155029}
   - component: {fileID: 906155028}
   - component: {fileID: 906155027}
+  - component: {fileID: 906155030}
   m_Layer: 8
   m_Name: Left Hand (1)
   m_TagString: Player
@@ -16714,6 +16723,33 @@ MonoBehaviour:
     m_Interactions: 
     m_SingletonActionBindings: []
     m_Flags: 0
+--- !u!54 &906155030
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 906155025}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 1
 --- !u!4 &910583739 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 05f02370af599bd4190b85d173ec9c48, type: 3}
@@ -16935,7 +16971,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 927522096}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Ladder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -17042,7 +17078,7 @@ GameObject:
   - component: {fileID: 937180656}
   - component: {fileID: 937180654}
   - component: {fileID: 937180655}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cylinder (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -17295,7 +17331,7 @@ GameObject:
   - component: {fileID: 949863859}
   - component: {fileID: 949863858}
   - component: {fileID: 949863857}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Top Handles (Climbable)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -17703,6 +17739,10 @@ PrefabInstance:
       propertyPath: m_CollisionDetection
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 2914973876326406431, guid: 7afd5ab8be1150d45af48da5a6371fed, type: 3}
+      propertyPath: m_InteractionLayers.m_Bits
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 4711940225988865187, guid: 7afd5ab8be1150d45af48da5a6371fed, type: 3}
       propertyPath: m_LocalPosition.x
       value: -45.71933
@@ -17746,6 +17786,10 @@ PrefabInstance:
     - target: {fileID: 5345768390617265689, guid: 7afd5ab8be1150d45af48da5a6371fed, type: 3}
       propertyPath: m_Name
       value: pedra 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5345768390617265689, guid: 7afd5ab8be1150d45af48da5a6371fed, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 5345768390617265689, guid: 7afd5ab8be1150d45af48da5a6371fed, type: 3}
       propertyPath: m_TagString
@@ -18997,7 +19041,7 @@ GameObject:
   - component: {fileID: 1013167883}
   - component: {fileID: 1013167881}
   - component: {fileID: 1013167882}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: TopRightBar
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -19210,7 +19254,7 @@ GameObject:
   - component: {fileID: 1036339677}
   - component: {fileID: 1036339679}
   - component: {fileID: 1036339678}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Color Affordance
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -20548,7 +20592,7 @@ GameObject:
   - component: {fileID: 1095175370}
   - component: {fileID: 1095175369}
   - component: {fileID: 1095175368}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -22861,7 +22905,7 @@ GameObject:
   - component: {fileID: 1194842202}
   - component: {fileID: 1194842200}
   - component: {fileID: 1194842201}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cylinder (3)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -23631,7 +23675,7 @@ GameObject:
   - component: {fileID: 1218489088}
   - component: {fileID: 1218489090}
   - component: {fileID: 1218489089}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Color Affordance
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -27681,7 +27725,7 @@ GameObject:
   - component: {fileID: 1484817391}
   - component: {fileID: 1484817393}
   - component: {fileID: 1484817392}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Color Affordance
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -28063,7 +28107,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_InteractionManager: {fileID: 0}
   m_InteractionLayers:
-    m_Bits: 1
+    m_Bits: 2
   m_Handedness: 2
   m_AttachTransform: {fileID: 0}
   m_KeepSelectedTargetValid: 1
@@ -28413,7 +28457,7 @@ GameObject:
   - component: {fileID: 1520260509}
   - component: {fileID: 1520260507}
   - component: {fileID: 1520260508}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cylinder (3)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -28931,6 +28975,7 @@ GameObject:
   - component: {fileID: 1548915915}
   - component: {fileID: 1548915914}
   - component: {fileID: 1548915913}
+  - component: {fileID: 1548915916}
   m_Layer: 8
   m_Name: Right Hand (1)
   m_TagString: Player
@@ -29095,6 +29140,33 @@ MonoBehaviour:
     m_Interactions: 
     m_SingletonActionBindings: []
     m_Flags: 0
+--- !u!54 &1548915916
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1548915911}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 1
 --- !u!4 &1550654919 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: dbf6fd9e0ebf1e346873fe0fe4ba6a86, type: 3}
@@ -29813,7 +29885,7 @@ GameObject:
   - component: {fileID: 1574200621}
   - component: {fileID: 1574200623}
   - component: {fileID: 1574200622}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Color Affordance
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -30637,7 +30709,7 @@ GameObject:
   - component: {fileID: 1603361852}
   - component: {fileID: 1603361854}
   - component: {fileID: 1603361853}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Color Affordance
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -31304,7 +31376,7 @@ GameObject:
   - component: {fileID: 1631492179}
   - component: {fileID: 1631492178}
   - component: {fileID: 1631492177}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -32348,7 +32420,7 @@ GameObject:
   - component: {fileID: 1673771407}
   - component: {fileID: 1673771409}
   - component: {fileID: 1673771408}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Color Affordance
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -33103,7 +33175,7 @@ GameObject:
   - component: {fileID: 1694595019}
   - component: {fileID: 1694595017}
   - component: {fileID: 1694595018}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cylinder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -33428,7 +33500,7 @@ GameObject:
   - component: {fileID: 1698405868}
   - component: {fileID: 1698405870}
   - component: {fileID: 1698405869}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Color Affordance
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -35353,9 +35425,17 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1777930245}
     m_Modifications:
+    - target: {fileID: -8770728483051419340, guid: 468fb74b349a74a479c6037161bebd0c, type: 3}
+      propertyPath: m_InteractionLayers.m_Bits
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 3673219378073060626, guid: 468fb74b349a74a479c6037161bebd0c, type: 3}
       propertyPath: m_Name
       value: pedra 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3673219378073060626, guid: 468fb74b349a74a479c6037161bebd0c, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 3673219378073060626, guid: 468fb74b349a74a479c6037161bebd0c, type: 3}
       propertyPath: m_TagString
@@ -35779,7 +35859,7 @@ GameObject:
   - component: {fileID: 1805656281}
   - component: {fileID: 1805656279}
   - component: {fileID: 1805656280}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cylinder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -36067,7 +36147,7 @@ GameObject:
   - component: {fileID: 1827409518}
   - component: {fileID: 1827409517}
   m_Layer: 8
-  m_Name: XR origin
+  m_Name: XR origin Player
   m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -36210,7 +36290,7 @@ GameObject:
   - component: {fileID: 1832398011}
   - component: {fileID: 1832398009}
   - component: {fileID: 1832398010}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: TopLeftBar
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -36796,7 +36876,7 @@ GameObject:
   - component: {fileID: 1842729622}
   - component: {fileID: 1842729620}
   - component: {fileID: 1842729621}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cylinder (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -39639,7 +39719,7 @@ GameObject:
   - component: {fileID: 1990374642}
   - component: {fileID: 1990374641}
   - component: {fileID: 1990374640}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Handles (Climbable)
   m_TagString: interactable
   m_Icon: {fileID: 0}
@@ -40592,7 +40672,7 @@ GameObject:
   - component: {fileID: 2061930171}
   - component: {fileID: 2061930173}
   - component: {fileID: 2061930172}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Color Affordance
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -42469,7 +42549,7 @@ GameObject:
   - component: {fileID: 2137927369}
   - component: {fileID: 2137927371}
   - component: {fileID: 2137927370}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Color Affordance
   m_TagString: Untagged
   m_Icon: {fileID: 0}
