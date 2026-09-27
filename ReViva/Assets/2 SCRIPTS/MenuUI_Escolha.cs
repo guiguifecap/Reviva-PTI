@@ -36,6 +36,9 @@ public class MenuUI_Escolha : MonoBehaviour
     private Vector2 centerPos;
     private Vector2 rightPos;
 
+    public string CenaMinigame1;
+    public string CenaMinigame2;
+
     private bool isAnimating;
 
     private void Start()
@@ -310,6 +313,10 @@ public class MenuUI_Escolha : MonoBehaviour
 
     public void ClimbingGame()
     {
-        SceneManager.LoadScene("TesteFase1");
+        SceneManager.LoadScene(CenaMinigame1);
+    }
+    public void Minigame2()
+    {
+        SceneManager.LoadScene(CenaMinigame2);
     }
 }
