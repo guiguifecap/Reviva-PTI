@@ -14,9 +14,10 @@ GameObject:
   - component: {fileID: 5005847887499147196}
   - component: {fileID: 145233919870874762}
   - component: {fileID: 865637378858131959}
+  - component: {fileID: 7555098748003551428}
   m_Layer: 0
   m_Name: Esfera
-  m_TagString: Untagged
+  m_TagString: Bola
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -112,8 +113,8 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.4
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Radius: 0.55445194
+  m_Center: {x: 0.006786187, y: 0, z: 0.01154681}
 --- !u!54 &145233919870874762
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -242,7 +243,7 @@ MonoBehaviour:
   m_SmoothScaleAmount: 8
   m_TightenScale: 0.1
   m_ThrowOnDetach: 1
-  m_ThrowSmoothingDuration: 0.25
+  m_ThrowSmoothingDuration: 0.1
   m_ThrowSmoothingCurve:
     serializedVersion: 2
     m_Curve:
@@ -256,8 +257,8 @@ MonoBehaviour:
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
-      time: 2.0049438
-      value: 2.9891357
+      time: 1.9877319
+      value: 1.974884
       inSlope: 2
       outSlope: 2
       tangentMode: 0
@@ -267,8 +268,8 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  m_ThrowVelocityScale: 2
-  m_ThrowAngularVelocityScale: 1
+  m_ThrowVelocityScale: 3.5
+  m_ThrowAngularVelocityScale: 0.5
   m_ForceGravityOnDetach: 1
   m_RetainTransformParent: 1
   m_StartingSingleGrabTransformers: []
@@ -279,3 +280,33 @@ MonoBehaviour:
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
   m_MaxAngularVelocityDelta: 20
+--- !u!114 &7555098748003551428
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7733506118919416571}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f10acc74622a21c41a69eac654e391b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RealisticThrow
+  sampleWindow: 0.15
+  dropSpeed: 0.6
+  deliberateSpeed: 2
+  throwMultiplier: 1.5
+  minThrowSpeed: 5
+  maxThrowSpeed: 14
+  correctAim: 1
+  aimBlend: 0.5
+  maxAimError: 25
+  upwardBias: 6
+  aimAssist: 1
+  assistStrength: 0.5
+  assistCone: 15
+  assistMaxDistance: 25
+  minTargetHeight: 0.15
+  gravityScale: 0.85
+  inheritPlayerVelocity: 0
+  debugLogs: 1

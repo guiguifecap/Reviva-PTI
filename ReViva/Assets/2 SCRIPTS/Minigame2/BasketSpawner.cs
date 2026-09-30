@@ -20,12 +20,17 @@ public class BasketSpawner : MonoBehaviour
     [SerializeField] private float ballLifetime = 0f;
 
     [Header("Pegar de longe (esferas geradas)")]
-    [Tooltip("Marcado: o player pode pegar as esferas de longe com o raio. Desmarcado: só de perto.")]
+    [Tooltip("Chave geral. Marcado: o player pode pegar as esferas de longe. Desmarcado: só de perto.")]
     [SerializeField] private bool allowFarGrab = true;
-    [Tooltip("Até essa distância (m) da mão, a esfera conta como 'perto' e sempre pode ser pega.")]
+    [Tooltip("Faz a esfera voar até a mão quando o raio aponta para ela e você aperta o grip. " +
+             "Desmarque se o Select do Ray Interactor já estiver funcionando sozinho.")]
+    [SerializeField] private bool farGrabAssist = true;
+    [Tooltip("Até essa distância (m) da mão, a esfera conta como 'perto' e é pega normalmente.")]
     [SerializeField] private float nearGrabDistance = 0.6f;
     [Tooltip("Distância máxima (m) para pegar de longe. 0 = sem limite.")]
     [SerializeField] private float maxFarGrabDistance = 15f;
+    [Tooltip("Tempo (s) da esfera voando até a mão.")]
+    [SerializeField] private float pullDuration = 0.15f;
 
     [Header("Diagnóstico")]
     [Tooltip("Se o botão for apertado sobre a cesta e o XRI não selecionar, gera a esfera mesmo assim.")]
@@ -40,6 +45,8 @@ public class BasketSpawner : MonoBehaviour
     private readonly List<XRBaseInputInteractor> hovering = new List<XRBaseInputInteractor>();
     private readonly List<XRBaseInputInteractor> allInteractors = new List<XRBaseInputInteractor>();
     private readonly Dictionary<XRBaseInputInteractor, bool> wasPressed = new Dictionary<XRBaseInputInteractor, bool>();
+    private readonly List<XRGrabInteractable> spawnedBalls = new List<XRGrabInteractable>();
+    private readonly HashSet<XRGrabInteractable> pulling = new HashSet<XRGrabInteractable>();
 
     private void Awake()
     {
@@ -102,12 +109,134 @@ public class BasketSpawner : MonoBehaviour
             if (!pressed || before) continue;
 
             bool over = IsOverBasket(it);
-            if (debugLogs) LogPress(it, over);
+            if (debugLogs && over) LogPress(it, over);
 
-            if (over && inputFallback)
-                StartCoroutine(CheckAfterPress(it));
+            if (over)
+            {
+                if (inputFallback)
+                    StartCoroutine(CheckAfterPress(it));
+            }
+            else if (allowFarGrab && farGrabAssist)
+            {
+                TryFarGrab(it);
+            }
         }
     }
+
+    // ---------------------------------------------------------------------
+    // Pegar de longe
+    // ---------------------------------------------------------------------
+
+    private void TryFarGrab(XRBaseInputInteractor it)
+    {
+        spawnedBalls.RemoveAll(b => b == null);
+        if (spawnedBalls.Count == 0) return;
+        if (it.hasSelection) return;
+
+        XRRayInteractor ray = FindRayFor(it);
+        if (ray == null)
+        {
+            Log("FAR GRAB: nenhum Ray Interactor encontrado perto de " + PathOf(it.transform));
+            return;
+        }
+
+        if (!ray.TryGetCurrent3DRaycastHit(out RaycastHit hit) || hit.collider == null)
+        {
+            Log("FAR GRAB: o raio não está apontando para nada.");
+            return;
+        }
+
+        XRGrabInteractable ball = hit.collider.GetComponentInParent<XRGrabInteractable>();
+        if (ball == null || !spawnedBalls.Contains(ball))
+        {
+            Log("FAR GRAB: o raio aponta para '" + hit.collider.name + "', que não é uma esfera gerada pela cesta.");
+            return;
+        }
+
+        if (ball.isSelected || pulling.Contains(ball)) return;
+
+        float d = Vector3.Distance(it.transform.position, ball.transform.position);
+        if (d <= nearGrabDistance) return; // perto: é pega normalmente
+
+        if (maxFarGrabDistance > 0f && d > maxFarGrabDistance)
+        {
+            Log("FAR GRAB: esfera longe demais (" + d.ToString("F1") + " m).");
+            return;
+        }
+
+        StartCoroutine(PullAndGrab(it, ball));
+    }
+
+    // Procura o Ray Interactor da mesma mão (sobe na hierarquia até achar um)
+    private XRRayInteractor FindRayFor(XRBaseInputInteractor it)
+    {
+        if (it is XRRayInteractor self) return self;
+
+        Transform t = it.transform;
+        while (t != null)
+        {
+            var ray = t.GetComponentInChildren<XRRayInteractor>();
+            if (ray != null) return ray;
+            t = t.parent;
+        }
+        return null;
+    }
+
+    private IEnumerator PullAndGrab(XRBaseInputInteractor it, XRGrabInteractable ball)
+    {
+        pulling.Add(ball);
+
+        IXRSelectInteractor si = it;
+        IXRSelectInteractable sb = ball;
+
+        Transform hand = si.GetAttachTransform(sb);
+        if (hand == null) hand = it.transform;
+
+        Rigidbody rb = ball.GetComponent<Rigidbody>();
+        bool wasKinematic = rb != null && rb.isKinematic;
+        if (rb != null) rb.isKinematic = true; // sem gravidade/colisão enquanto voa
+
+        Log("FAR GRAB: puxando a esfera para a mão.");
+
+        Vector3 start = ball.transform.position;
+        float t = 0f;
+        float duration = Mathf.Max(0.01f, pullDuration);
+
+        while (t < duration)
+        {
+            if (ball == null) { pulling.Remove(ball); yield break; }
+
+            // Soltou o botão no meio do caminho: cancela
+            if (it == null || !it.selectInput.ReadIsPerformed())
+            {
+                if (rb != null) rb.isKinematic = wasKinematic;
+                pulling.Remove(ball);
+                yield break;
+            }
+
+            t += Time.deltaTime;
+            ball.transform.position = Vector3.Lerp(start, hand.position, Mathf.Clamp01(t / duration));
+            yield return null;
+        }
+
+        if (ball == null) { pulling.Remove(ball); yield break; }
+
+        ball.transform.position = hand.position;
+        if (rb != null) rb.isKinematic = wasKinematic; // o XRI precisa ver o estado original
+
+        var manager = basket.interactionManager;
+        if (manager != null && !ball.isSelected && !it.hasSelection)
+        {
+            manager.SelectEnter(si, sb);
+            Log("FAR GRAB: esfera entregue à mão.");
+        }
+
+        pulling.Remove(ball);
+    }
+
+    // ---------------------------------------------------------------------
+    // Cesta
+    // ---------------------------------------------------------------------
 
     // O interactor está apontando para a cesta, em hover nela ou com a mão dentro dela?
     private bool IsOverBasket(XRBaseInputInteractor it)
@@ -204,8 +333,9 @@ public class BasketSpawner : MonoBehaviour
 
         XRGrabInteractable ball = Instantiate(spherePrefab, hand.position, hand.rotation);
         IXRSelectInteractable selBall = ball;
+        spawnedBalls.Add(ball);
 
-        // 3. Regra de pegar de longe (configurável no Inspector)
+        // 3. Regra de pegar de longe para a seleção automática do XRI
         ball.selectFilters.Add(new FarGrabFilter
         {
             allowFar = allowFarGrab,
@@ -248,7 +378,8 @@ public class BasketSpawner : MonoBehaviour
     }
 }
 
-// Regra de "pegar de longe". Não é MonoBehaviour: é criada em código para cada esfera.
+// Regra de "pegar de longe" para a seleção automática do XRI.
+// Não é MonoBehaviour: é criada em código para cada esfera.
 public class FarGrabFilter : IXRSelectFilter
 {
     public bool allowFar = true;
@@ -264,10 +395,8 @@ public class FarGrabFilter : IXRSelectFilter
 
         float d = Vector3.Distance(interactor.transform.position, interactable.transform.position);
 
-        if (d <= nearGrabDistanceSafe(nearDistance)) return true;  // perto: sempre pode
-        if (!allowFar) return false;                                // longe e desmarcado no Inspector
-        return maxFar <= 0f || d <= maxFar;                         // longe: respeita o limite
+        if (d <= Mathf.Max(0f, nearDistance)) return true;  // perto: sempre pode
+        if (!allowFar) return false;                         // longe e desmarcado no Inspector
+        return maxFar <= 0f || d <= maxFar;                  // longe: respeita o limite
     }
-
-    private static float nearGrabDistanceSafe(float v) => v < 0f ? 0f : v;
 }

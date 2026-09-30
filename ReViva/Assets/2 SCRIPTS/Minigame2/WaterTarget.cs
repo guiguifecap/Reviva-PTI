@@ -5,17 +5,37 @@ using UnityEngine.Events;
 /// Attach to your target prefab. Handles the rise -> stay -> sink cycle.
 /// The spawner calls Init() to activate it, and this script tells the
 /// spawner when it's done (via ReturnTarget) so a new one can spawn.
+/// Breaks when hit by any object tagged with ballTag ("Bola").
 /// </summary>
 public class WaterTarget : MonoBehaviour
 {
     [Tooltip("Fires when this target gets hit")]
     public UnityEvent onHit;
 
+    [Header("Ball Detection")]
+    [Tooltip("Tag of the objects that break this target")]
+    [SerializeField] private string ballTag = "Bola";
+    [Tooltip("Minimum impact speed (m/s) needed to break. Only applies to normal (non-trigger) collisions")]
+    [SerializeField] private float minImpactSpeed = 0.5f;
+    [Tooltip("The target can only be broken after rising this many meters above the water (ignores hits while underwater)")]
+    [SerializeField] private float minHeightToHit = 0.2f;
+    [Tooltip("Destroy the ball that hit the target")]
+    [SerializeField] private bool destroyBallOnHit = false;
+
     [Header("Hit Reaction")]
     [Tooltip("How long the pop + shrink animation takes")]
     [SerializeField] private float hitAnimDuration = 0.35f;
     [Tooltip("Optional - a particle system to spawn at the hit point (leave empty to skip)")]
     [SerializeField] private ParticleSystem hitEffectPrefab;
+
+    [Header("Break Effect (shards)")]
+    [SerializeField] private bool spawnShards = true;
+    [SerializeField] private int shardCount = 12;
+    [SerializeField] private Vector2 shardSizeRange = new Vector2(0.05f, 0.12f);
+    [Tooltip("Speed (m/s) the shards fly away with")]
+    [SerializeField] private Vector2 shardSpeedRange = new Vector2(1.5f, 4f);
+    [SerializeField] private float shardLifetime = 2.5f;
+    [SerializeField] private AudioClip breakSound;
 
     private enum State { Rising, Staying, Sinking }
 
@@ -29,6 +49,22 @@ public class WaterTarget : MonoBehaviour
     private float riseDuration;
     private float sinkDuration;
     private float stayDuration;
+
+    private Collider[] colliders;
+    private MeshRenderer[] meshRenderers;
+    private bool hasImpactPoint;
+    private Vector3 impactPoint;
+
+    private void Awake()
+    {
+        CacheComponents();
+    }
+
+    private void CacheComponents()
+    {
+        colliders = GetComponentsInChildren<Collider>(true);
+        meshRenderers = GetComponentsInChildren<MeshRenderer>(true);
+    }
 
     /// <summary>
     /// Called by TargetSpawner right after grabbing this target from the pool.
@@ -48,7 +84,9 @@ public class WaterTarget : MonoBehaviour
         state = State.Rising;
         stateTimer = 0f;
         isHit = false;
+        hasImpactPoint = false;
 
+        SetCollidersEnabled(true);
         gameObject.SetActive(true);
     }
 
@@ -56,6 +94,10 @@ public class WaterTarget : MonoBehaviour
 
     private void Update()
     {
+        // No spawner = this instance never went through Init() (e.g. it was placed
+        // in the scene by hand). Stay idle instead of spamming NullReferenceExceptions.
+        if (spawner == null) return;
+
         if (isHit) return; // hit reaction coroutine is driving position/scale now
 
         stateTimer += Time.deltaTime;
@@ -100,8 +142,11 @@ public class WaterTarget : MonoBehaviour
         if (isHit) return;
         isHit = true;
 
+        // Stop the ball from bouncing off / re-hitting the target while it breaks
+        SetCollidersEnabled(false);
+
         onHit?.Invoke();
-        spawner.RegisterHit();
+        if (spawner != null) spawner.RegisterHit();
         StartCoroutine(HitReaction());
     }
 
@@ -112,16 +157,88 @@ public class WaterTarget : MonoBehaviour
         Hit();
     }
 
+    // ---------------------------------------------------------------------
+    // Ball detection
+    // ---------------------------------------------------------------------
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.relativeVelocity.magnitude < minImpactSpeed) return;
+
+        Vector3 point = collision.contactCount > 0
+            ? collision.GetContact(0).point
+            : transform.position;
+
+        TryHitFromBall(collision.collider, point);
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        TryHitFromBall(other, other.ClosestPoint(transform.position));
+    }
+
+    private void TryHitFromBall(Collider other, Vector3 point)
+    {
+        if (isHit || spawner == null) return;
+        if (!IsBall(other)) return;
+
+        // Ignore hits while the target is still (mostly) underwater
+        if (transform.position.y < sunkenPos.y + minHeightToHit) return;
+
+        impactPoint = point;
+        hasImpactPoint = true;
+        Hit();
+
+        if (destroyBallOnHit)
+        {
+            Rigidbody rb = other.attachedRigidbody;
+            Destroy(rb != null ? rb.gameObject : other.gameObject);
+        }
+    }
+
+    private bool IsBall(Collider col)
+    {
+        if (col == null) return false;
+        if (col.CompareTag(ballTag)) return true;
+
+        Rigidbody rb = col.attachedRigidbody;
+        if (rb != null && rb.CompareTag(ballTag)) return true;
+
+        return col.transform.root.CompareTag(ballTag);
+    }
+
+    private void SetCollidersEnabled(bool value)
+    {
+        if (colliders == null) CacheComponents();
+
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            if (colliders[i] != null) colliders[i].enabled = value;
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Hit reaction
+    // ---------------------------------------------------------------------
+
     /// <summary>
-    /// Little punchy pop-up, then spins and shrinks away to nothing.
-    /// Purely code-driven so it works with zero extra art/particles - assign
-    /// hitEffectPrefab if you want a particle burst layered on top later.
+    /// Shards burst out, then a little punchy pop-up, then it spins and shrinks
+    /// away to nothing. Purely code-driven so it works with zero extra art -
+    /// assign hitEffectPrefab if you want a particle burst layered on top.
     /// </summary>
     private System.Collections.IEnumerator HitReaction()
     {
         Vector3 startScale = transform.localScale;
         Quaternion startRotation = transform.rotation;
         Vector3 startPos = transform.position;
+
+        Vector3 origin = hasImpactPoint ? impactPoint : startPos;
+
+        if (spawnShards)
+            SpawnShards(origin);
+
+        if (breakSound != null)
+            AudioSource.PlayClipAtPoint(breakSound, startPos);
 
         if (hitEffectPrefab != null)
         {
@@ -165,13 +282,66 @@ public class WaterTarget : MonoBehaviour
         Despawn();
     }
 
-    private void Despawn()
+    private void SpawnShards(Vector3 impactPoint)
     {
-        spawner.ReturnTarget(this);
+        Bounds bounds = GetVisualBounds();
+
+        Material mat = null;
+        for (int i = 0; i < meshRenderers.Length; i++)
+        {
+            if (meshRenderers[i] != null && meshRenderers[i].sharedMaterial != null)
+            {
+                mat = meshRenderers[i].sharedMaterial;
+                break;
+            }
+        }
+
+        for (int i = 0; i < shardCount; i++)
+        {
+            GameObject shard = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            shard.name = "Shard";
+
+            float size = Random.Range(shardSizeRange.x, shardSizeRange.y);
+            shard.transform.localScale = new Vector3(size, size, size);
+            shard.transform.rotation = Random.rotation;
+            shard.transform.position = bounds.center + Vector3.Scale(Random.insideUnitSphere, bounds.extents);
+
+            if (mat != null)
+                shard.GetComponent<Renderer>().sharedMaterial = mat;
+
+            Rigidbody rb = shard.AddComponent<Rigidbody>();
+            rb.mass = 0.05f;
+
+            // Shards fly away from the impact point, with a little upward kick
+            Vector3 dir = (shard.transform.position - impactPoint).normalized + Vector3.up * 0.5f;
+            rb.AddForce(dir.normalized * Random.Range(shardSpeedRange.x, shardSpeedRange.y),
+                        ForceMode.VelocityChange);
+            rb.AddTorque(Random.insideUnitSphere * 5f, ForceMode.VelocityChange);
+
+            Destroy(shard, shardLifetime);
+        }
     }
 
-    private void OnCollisionEnter(Collision collision)
+    private Bounds GetVisualBounds()
     {
-        Destroy(collision.gameObject);
+        Bounds b = new Bounds(transform.position, Vector3.one * 0.5f);
+        bool has = false;
+
+        for (int i = 0; i < meshRenderers.Length; i++)
+        {
+            if (meshRenderers[i] == null) continue;
+
+            if (!has) { b = meshRenderers[i].bounds; has = true; }
+            else b.Encapsulate(meshRenderers[i].bounds);
+        }
+        return b;
+    }
+
+    private void Despawn()
+    {
+        if (spawner != null)
+            spawner.ReturnTarget(this);
+        else
+            gameObject.SetActive(false);
     }
 }
