@@ -24,7 +24,7 @@ public class AudioPedras : MonoBehaviour
 
     private void OnClimb(SelectEnterEventArgs args)
     {
-        if (AudioManager.Instance != null)
-            AudioManager.Instance.PlayRockGrab();
+        if (AudioManagerMinigame1.Instance != null)
+            AudioManagerMinigame1.Instance.PlayRockGrab();
     }
 }

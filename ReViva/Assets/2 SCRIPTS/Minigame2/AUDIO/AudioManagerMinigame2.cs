@@ -3,33 +3,33 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Audio;
 
-public class AudioManager : MonoBehaviour
+public class AudioManagerMinigame2 : MonoBehaviour
 {
-    public static AudioManager Instance;
+    public static AudioManagerMinigame2 Instance;
 
     [Header("Mixer")]
     public AudioMixer audioMixer;
 
-    [Header("Floresta")]
-    public AudioSource forestSource;
-    public AudioClip[] forestSounds;
-    public TextMeshProUGUI forestVolumeText;
+    [Header("Som de Fundo")]
+    public AudioSource brisaSource;
+    public AudioClip[] brisaSounds;
+    public TextMeshProUGUI brisaVolumeText;
 
     [Header("Passos")]
     public AudioSource walkingSource;
     public AudioClip[] walkingSounds;
     public TextMeshProUGUI walkingVolumeText;
 
-    [Header("Pedras")]
-    public AudioSource pedrasSource;
-    public AudioClip[] pedrasSounds;
-    public TextMeshProUGUI pedrasVolumeText;
+    [Header("Bolas")]
+    public AudioSource bolaSource;
+    public AudioClip[] bolaSounds;
+    public TextMeshProUGUI bolaVolumeText;
 
     [Header("Master")]
     public TextMeshProUGUI masterVolumeText;
 
 
-    private Coroutine forestCoroutine;
+    private Coroutine brisaCoroutine;
 
     //private void Awake()
     //{
@@ -46,25 +46,25 @@ public class AudioManager : MonoBehaviour
 
     private void Start()
     {
-        forestCoroutine = StartCoroutine(ForestSoundsLoop());
+        brisaCoroutine = StartCoroutine(brisaSoundsLoop());
     }
 
     // ─────────────────────────────────────────────
     // FOREST
     // ─────────────────────────────────────────────
 
-    private IEnumerator ForestSoundsLoop()
+    private IEnumerator brisaSoundsLoop()
     {
         while (true)
         {
-            if (forestSounds.Length > 0)
+            if (brisaSounds.Length > 0)
             {
-                int random = Random.Range(0, forestSounds.Length);
+                int random = Random.Range(0, brisaSounds.Length);
 
-                forestSource.clip = forestSounds[random];
-                forestSource.Play();
+                brisaSource.clip = brisaSounds[random];
+                brisaSource.Play();
 
-                yield return new WaitForSeconds(forestSource.clip.length);
+                yield return new WaitForSeconds(brisaSource.clip.length);
             }
             else
             {
@@ -77,15 +77,15 @@ public class AudioManager : MonoBehaviour
     // PEDRAS
     // ─────────────────────────────────────────────
 
-    public void PlayRockGrab()
-    {
-        if (pedrasSounds.Length == 0)
-            return;
-
-        int random = Random.Range(0, pedrasSounds.Length);
-
-        pedrasSource.PlayOneShot(pedrasSounds[random]);
-    }
+   // public void PlayRockGrab()
+   // {
+   //     if (pedrasSounds.Length == 0)
+   //         return;
+   //
+   //     int random = Random.Range(0, pedrasSounds.Length);
+   //
+   //     pedrasSource.PlayOneShot(pedrasSounds[random]);
+   // }
 
     // ─────────────────────────────────────────────
     // WALKING
@@ -106,14 +106,14 @@ public class AudioManager : MonoBehaviour
     // VOLUME
     // ─────────────────────────────────────────────
 
-    public void SetForestVolume(float value)
+    public void SetBrisaVolume(float value)
     {
-        audioMixer.SetFloat("ForestVolume", value);
+        audioMixer.SetFloat("brisaVolume", value);
     }
-    public void UpdateForestVolumeText(float value)
+    public void UpdateBrisaVolumeText(float value)
     {
         int percentage = Mathf.RoundToInt(Mathf.InverseLerp(-80f, 0f, value) * 100f);
-        forestVolumeText.text = percentage + "%";
+        brisaVolumeText.text = percentage + "%";
     }
 
     public void SetWalkingVolume(float value)
@@ -126,14 +126,14 @@ public class AudioManager : MonoBehaviour
         walkingVolumeText.text = percentage + "%";
     }
 
-    public void SetPedrasVolume(float value)
+    public void SetBolaVolume(float value)
     {
-        audioMixer.SetFloat("pedrasVolume", value);
+        audioMixer.SetFloat("bolaVolume", value);
     }
     public void UpdatePedrasVolumeText(float value)
     {
         int percentage = Mathf.RoundToInt(Mathf.InverseLerp(-80f, 0f, value) * 100f);
-        pedrasVolumeText.text = percentage + "%";
+        bolaVolumeText.text = percentage + "%";
     }
 
     public void SetMasterVolume(float value)
