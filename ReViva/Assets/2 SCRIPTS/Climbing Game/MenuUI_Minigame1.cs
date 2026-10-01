@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public class MenuUI_Jogo : MonoBehaviour
+public class MenuUI_Minigame1 : MonoBehaviour
 {
     [Header("Dificuldade")]
     public Toggle toggleLight;
