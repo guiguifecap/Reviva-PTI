@@ -22691,8 +22691,8 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  leftArrowButton: {fileID: 2134836859}
-  rightArrowButton: {fileID: 924472100}
+  leftArrowButton: {fileID: 924472100}
+  rightArrowButton: {fileID: 2134836859}
   centerAlpha: 1
   sideAlpha: 0.55
   loadingUI: {fileID: 1041899718}
