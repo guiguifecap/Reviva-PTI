@@ -17,22 +17,26 @@ public class MenuUI_Minigame2 : MonoBehaviour
     public TextMeshProUGUI difficultyText;
     private bool advancedDifficulty = false;
 
-    [Header("Distância dos Alvos")]
-    [Tooltip("Spawner que controla os alvos.")]
+    [Header("Distância dos Alvos por Dificuldade")]
+    [Tooltip("Spawner que controla os alvos. Se vazio, é procurado na cena.")]
     public TargetSpawner targetSpawner;
     [Tooltip("Transform do player (câmera do XR Origin). Se vazio, usa a Main Camera.")]
     public Transform jogador;
-    [Tooltip("Distância dos alvos com dificuldade mínima (0.4), em metros.")]
-    public float distanciaMinima = 2f;
-    [Tooltip("Distância dos alvos com dificuldade máxima (1.0), em metros.")]
-    public float distanciaMaxima = 6f;
-    [Tooltip("Se ligado e o paciente estiver calibrado, a distância = alcance calibrado × dificuldade (igual ao minigame 1). Se desligado, usa mínima/máxima acima.")]
-    public bool basearNoAlcanceCalibrado = true;
+    [Tooltip("Dificuldade LEVE (0.4): quantos metros os alvos ficam MAIS PERTO do player que na posição original.")]
+    public float aproximarNoLeve = 1.5f;
+    [Tooltip("Dificuldade DIFÍCIL (1.0): quantos metros os alvos ficam MAIS LONGE do player que na posição original.")]
+    public float afastarNoDificil = 2f;
+    [Tooltip("Menor distância (m) que os alvos podem chegar do player ao aproximar.")]
+    public float distanciaMinimaDoPlayer = 1f;
+    [Tooltip("Se ligado e o paciente estiver calibrado, a distância = alcance calibrado × dificuldade e os valores acima são IGNORADOS. Deixe desligado para usar Leve / Regular / Difícil.")]
+    public bool basearNoAlcanceCalibrado = false;
+    [Tooltip("Escreve no Console o deslocamento aplicado a cada mudança de dificuldade.")]
+    public bool mostrarLogsDeDistancia = true;
 
     [Header("Componentes do Jogo")]
-    public GoniometriaClimb goniometria;
+    public GoniometriaGenerico goniometria;
 
-    [Header("Calibração")]
+    [Header("Calibração (opcional: pode deixar vazio)")]
     public TextMeshProUGUI statusCalibracao;
     public Slider barraProgressoCalibracao;
     public Toggle statusToggle;
@@ -53,7 +57,13 @@ public class MenuUI_Minigame2 : MonoBehaviour
     public GameObject PanelPause;
     public bool isPause;
 
+    // Pontos de dificuldade: Leve = 0.4, Regular = 0.7 (posição original), Difícil = 1.0
+    private const float DificuldadeLeve = 0.4f;
+    private const float DificuldadeRegular = 0.7f;
+    private const float DificuldadeDificil = 1f;
+
     private float dificuldadeAtual = 0.7f;
+    private bool referenciasProntas = false;
 
     void Start()
     {
@@ -71,8 +81,8 @@ public class MenuUI_Minigame2 : MonoBehaviour
 
         if (difficultySlider != null)
         {
-            difficultySlider.minValue = 0.4f;
-            difficultySlider.maxValue = 1f;
+            difficultySlider.minValue = DificuldadeLeve;
+            difficultySlider.maxValue = DificuldadeDificil;
             difficultySlider.wholeNumbers = false;
             difficultySlider.value = 0.7f;
             difficultySlider.onValueChanged.AddListener(OnSliderChanged);
@@ -81,33 +91,48 @@ public class MenuUI_Minigame2 : MonoBehaviour
         SetAdvancedMode(false);
         SelecionarDificuldade(0.7f, toggleRegular);
 
-        // ── Guard: o resto só faz sentido na cena do jogo ──
-        if (SceneManager.GetActiveScene().name != cenaJogo)
+        // ── O resto só faz sentido na cena do jogo ──
+        // Se existe um TargetSpawner na cena, estamos na cena do jogo (mesmo que o nome seja outro).
+        if (targetSpawner == null)
+            targetSpawner = FindObjectOfType<TargetSpawner>();
+
+        bool naCenaDoJogo = targetSpawner != null ||
+                            SceneManager.GetActiveScene().name == cenaJogo;
+
+        if (!naCenaDoJogo)
         {
-            Debug.LogWarning(
-                $"[MenuUI2] Start() interrompido pelo guard de cena: cena ativa é " +
-                $"'{SceneManager.GetActiveScene().name}', mas 'cenaJogo' é '{cenaJogo}'.");
+            Debug.Log($"[MenuUI2] Cena '{SceneManager.GetActiveScene().name}' não é a do jogo " +
+                      $"('{cenaJogo}') e não há TargetSpawner: configuração de alvos ignorada.");
             return;
         }
 
         if (goniometria == null)
-            goniometria = FindObjectOfType<GoniometriaClimb>();
-
-        if (targetSpawner == null)
-            targetSpawner = FindObjectOfType<TargetSpawner>();
+            goniometria = FindObjectOfType<GoniometriaGenerico>();
 
         if (jogador == null && Camera.main != null)
             jogador = Camera.main.transform;
 
+        // Plano B: qualquer câmera ativa (caso a câmera do VR não tenha a tag MainCamera)
+        if (jogador == null)
+        {
+            Camera qualquerCamera = FindObjectOfType<Camera>();
+            if (qualquerCamera != null) jogador = qualquerCamera.transform;
+        }
+
         if (targetSpawner == null)
             Debug.LogWarning("[MenuUI2] TargetSpawner não encontrado na cena!");
+
+        if (jogador == null)
+            Debug.LogWarning("[MenuUI2] Player não encontrado! Arraste a câmera do XR Origin no campo 'Jogador'.");
 
         if (goniometria != null)
             goniometria.OnCalibracaoConcluida += AtualizarDistanciaDosAlvos;
         else
-            Debug.LogWarning("[MenuUI2] GoniometriaClimb não encontrada na cena!");
+            Debug.LogWarning("[MenuUI2] GoniometriaGenerico não encontrada na cena!");
 
-        // aplica a distância inicial
+        referenciasProntas = targetSpawner != null && jogador != null;
+
+        // aplica a distância inicial (Regular = posição original)
         AtualizarDistanciaDosAlvos();
     }
 
@@ -151,31 +176,26 @@ public class MenuUI_Minigame2 : MonoBehaviour
 
         if (goniometria != null)
             goniometria.IniciarCalibracaoManual();
+        else
+            Debug.LogWarning("[MenuUI2] CalibrarPaciente: GoniometriaGenerico não atribuída.");
     }
 
+    // Todos os campos de UI são opcionais: não dá erro se algum estiver vazio
     void AtualizarStatus()
     {
         if (goniometria.calibrando)
-        {
-            statusCalibracao.text = goniometria.faseAtual;
-            statusToggle.isOn = false;
-            if (barraProgressoCalibracao != null)
-                barraProgressoCalibracao.value = goniometria.progressoCalibracao;
-        }
+            MostrarStatus(goniometria.faseAtual, false, goniometria.progressoCalibracao);
         else if (goniometria.calibrado)
-        {
-            statusCalibracao.text = $"✔ Calibrado ({goniometria.alcanceMaximo * 100f:F0} cm)";
-            statusToggle.isOn = true;
-            if (barraProgressoCalibracao != null)
-                barraProgressoCalibracao.value = 1f;
-        }
+            MostrarStatus($"✔ Calibrado ({goniometria.alcanceMaximo * 100f:F0} cm)", true, 1f);
         else
-        {
-            statusCalibracao.text = "⚠ Não calibrado";
-            statusToggle.isOn = false;
-            if (barraProgressoCalibracao != null)
-                barraProgressoCalibracao.value = 0f;
-        }
+            MostrarStatus("⚠ Não calibrado", false, 0f);
+    }
+
+    void MostrarStatus(string texto, bool ok, float progresso)
+    {
+        if (statusCalibracao != null) statusCalibracao.text = texto;
+        if (statusToggle != null) statusToggle.isOn = ok;
+        if (barraProgressoCalibracao != null) barraProgressoCalibracao.value = progresso;
     }
 
     // ── Tempo real ──────────────────────────────────────────
@@ -249,26 +269,56 @@ public class MenuUI_Minigame2 : MonoBehaviour
     }
 
     // ── Distância dos alvos ─────────────────────────────────
-    float CalcularDistancia()
-    {
-        bool usarCalibrado = basearNoAlcanceCalibrado && goniometria != null && goniometria.calibrado;
 
+    /// <summary>
+    /// Deslocamento (em metros) em relação à posição original dos alvos.
+    /// Regular (0.7) = 0 | Leve (0.4) = -aproximarNoLeve | Difícil (1.0) = +afastarNoDificil.
+    /// Valores intermediários do slider são interpolados.
+    /// </summary>
+    float CalcularDeslocamento()
+    {
+        if (dificuldadeAtual < DificuldadeRegular)
+        {
+            // 0 no Regular -> 1 no Leve
+            float t = Mathf.InverseLerp(DificuldadeRegular, DificuldadeLeve, dificuldadeAtual);
+            return -aproximarNoLeve * t;
+        }
+
+        // 0 no Regular -> 1 no Difícil
+        float t2 = Mathf.InverseLerp(DificuldadeRegular, DificuldadeDificil, dificuldadeAtual);
+        return afastarNoDificil * t2;
+    }
+
+    public void AtualizarDistanciaDosAlvos()
+    {
+        if (!referenciasProntas) return;
+
+        // Modo opcional: distância pelo alcance calibrado do paciente
+        bool usarCalibrado = basearNoAlcanceCalibrado && goniometria != null && goniometria.calibrado;
         if (usarCalibrado)
         {
             float alcance = goniometria.alcanceMaximo; // em metros
             if (GameSettings.Instance != null && GameSettings.Instance.usarMetadeDoAlcance)
                 alcance *= 0.5f;
-            return alcance * dificuldadeAtual;
+
+            float distancia = alcance * dificuldadeAtual;
+            targetSpawner.SetSpawnDistance(jogador.position, distancia);
+
+            if (mostrarLogsDeDistancia)
+                Debug.Log($"[MenuUI2] Dificuldade {dificuldadeAtual:F2} -> alvos a {distancia:F2} m do player (alcance calibrado).");
+            return;
         }
 
-        float t = Mathf.InverseLerp(0.4f, 1f, dificuldadeAtual);
-        return Mathf.Lerp(distanciaMinima, distanciaMaxima, t);
-    }
+        float deslocamento = CalcularDeslocamento();
+        targetSpawner.SetSpawnOffset(jogador.position, deslocamento, distanciaMinimaDoPlayer);
 
-    public void AtualizarDistanciaDosAlvos()
-    {
-        if (targetSpawner == null || jogador == null) return;
-        targetSpawner.SetSpawnDistance(jogador.position, CalcularDistancia());
+        if (mostrarLogsDeDistancia)
+        {
+            string descricao = Mathf.Abs(deslocamento) < 0.01f ? "posição original"
+                             : deslocamento > 0f ? $"{deslocamento:F1} m mais longe"
+                                                 : $"{-deslocamento:F1} m mais perto";
+            Debug.Log($"[MenuUI2] Dificuldade {dificuldadeAtual:F2} -> alvos: {descricao}.");
+        }
     }
 
     // ── Resultados ──────────────────────────────────────────
@@ -291,6 +341,9 @@ public class MenuUI_Minigame2 : MonoBehaviour
     public void ReiniciarParaNovaSessao()
     {
         sessaoFinalizada = false;
+
+        if (goniometria != null)
+            goniometria.ResetarSessao();
     }
 
     // ── Toggle alcance ──────────────────────────────────────

@@ -10,6 +10,7 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
 /// Arremesso consistente para VR. Substitui o arremesso padrão do XRGrabInteractable:
 /// mede o movimento da mão no espaço do XR Origin, escolhe a velocidade e a direção
 /// do arremesso com regras previsíveis e aplica a velocidade no Rigidbody.
+/// O trail da bola só aparece depois de um arremesso, e a bola não treme na mão.
 /// </summary>
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(XRGrabInteractable))]
@@ -57,6 +58,30 @@ public class RealisticThrow : MonoBehaviour
     [Tooltip("Quanto da velocidade do player (andando) é somada ao arremesso.")]
     [Range(0f, 1f)][SerializeField] private float inheritPlayerVelocity = 0f;
 
+    [Header("Trail do arremesso")]
+    [Tooltip("Liga/desliga o trail. Ele só aparece depois de um arremesso.")]
+    [SerializeField] private bool useTrail = true;
+    [Tooltip("TrailRenderer da bola. Se vazio, procura no próprio objeto e nos filhos.")]
+    [SerializeField] private TrailRenderer trail;
+    [Tooltip("Tempo (s) depois que a bola sai da mão para o trail aparecer.")]
+    [SerializeField] private float trailDelay = 0.5f;
+    [Tooltip("Por quanto tempo (s) o trail fica ativo no ar, contado a partir do momento em que aparece. " +
+             "O rastro que sobra some conforme o campo Time do próprio TrailRenderer.")]
+    [SerializeField] private float trailDuration = 1.5f;
+    [Tooltip("Velocidade mínima (m/s) de saída para contar como arremesso e mostrar o trail. " +
+             "Soltar a bola devagar não mostra o trail.")]
+    [SerializeField] private float trailMinThrowSpeed = 3f;
+
+    // NOVO (anti-tremor): configurações da bola na mão
+    [Header("Bola na mão (anti-tremor)")]
+    [Tooltip("Segura a bola de forma suave (Movement Type Instantaneous) enquanto ela está na mão. " +
+             "Sem isso, o XR Grab Interactable usa o Movement Type que está configurado nele.")]
+    [SerializeField] private bool smoothHold = true;
+    [Tooltip("Enquanto a bola está na mão, ela ignora colisões com os colliders do player (corpo, mão, Character Controller).")]
+    [SerializeField] private bool ignorePlayerCollisionsWhileHeld = true;
+    [Tooltip("Tempo (s) depois de soltar até as colisões com o player voltarem.")]
+    [SerializeField] private float restoreCollisionDelay = 0.35f;
+
     [Header("Diagnóstico")]
     [SerializeField] private bool debugLogs = true;
 
@@ -75,6 +100,16 @@ public class RealisticThrow : MonoBehaviour
     private Transform trackingSpace;
     private readonly List<Sample> samples = new List<Sample>();
 
+    // Controle do trail
+    private Coroutine trailRoutine;
+
+    // NOVO (anti-tremor): estado da pegada
+    private RigidbodyInterpolation savedInterpolation;
+    private bool interpolationSaved;
+    private Collider[] ballColliders;
+    private readonly List<Collider> ignoredPlayerColliders = new List<Collider>();
+    private Coroutine collisionRoutine;
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -82,6 +117,19 @@ public class RealisticThrow : MonoBehaviour
 
         // O arremesso passa a ser feito por este script
         grab.throwOnDetach = false;
+
+        // NOVO (anti-tremor): a bola cola na mão a cada quadro, sem "perseguir" pela física
+        if (smoothHold)
+            grab.movementType = XRBaseInteractable.MovementType.Instantaneous;
+
+        // O trail começa sempre desligado
+        if (trail == null)
+            trail = GetComponentInChildren<TrailRenderer>(true);
+
+        if (trail != null)
+            trail.enabled = true; // o componente fica ligado; quem controla o rastro é o "emitting"
+
+        HideTrail();
     }
 
     private void OnEnable()
@@ -94,6 +142,14 @@ public class RealisticThrow : MonoBehaviour
     {
         grab.selectEntered.RemoveListener(OnGrabbed);
         grab.selectExited.RemoveListener(OnReleased);
+
+        // NOVO (anti-tremor): se a bola for desativada na mão, não deixa nada alterado
+        if (interpolationSaved && rb != null)
+        {
+            rb.interpolation = savedInterpolation;
+            interpolationSaved = false;
+        }
+        RestorePlayerCollisions();
     }
 
     // ---------------------------------------------------------------------
@@ -110,17 +166,34 @@ public class RealisticThrow : MonoBehaviour
         trackingSpace = origin != null ? origin.transform : holder.transform.root;
 
         samples.Clear();
+
+        // Pegou a bola de novo, o trail some na hora
+        HideTrail();
+
+        // NOVO (anti-tremor)
+        BeginHoldState();
     }
 
     private void OnReleased(SelectExitEventArgs args)
     {
-        if (args.isCanceled) return;
-        if (holder == null || args.interactorObject != holder) return;
+        StopAllCoroutines();
+        trailRoutine = null;
+
+        // NOVO (anti-tremor): sempre volta ao normal ao soltar (mesmo se a pegada foi cancelada)
+        EndHoldState();
+
+        if (args.isCanceled || holder == null || args.interactorObject != holder)
+        {
+            HideTrail();
+            return;
+        }
 
         Vector3 throwVelocity = BuildThrowVelocity(rb.position);
 
-        StopAllCoroutines();
         StartCoroutine(ApplyThrow(throwVelocity));
+
+        // O trail só aparece em arremessos de verdade
+        StartTrailForThrow(throwVelocity.magnitude);
     }
 
     // Grava a posição da mão (no espaço do XR Origin) a cada frame enquanto segura
@@ -166,6 +239,155 @@ public class RealisticThrow : MonoBehaviour
 
         SetVelocity(velocity);
         SetAngularVelocity(Vector3.zero);
+    }
+
+    // ---------------------------------------------------------------------
+    // NOVO (anti-tremor): estado da bola na mão
+    // ---------------------------------------------------------------------
+
+    private void BeginHoldState()
+    {
+        // Pegou de novo antes das colisões voltarem: cancela a volta
+        if (collisionRoutine != null)
+        {
+            StopCoroutine(collisionRoutine);
+            collisionRoutine = null;
+        }
+
+        // A interpolação do Rigidbody briga com o movimento direto; fica desligada só na mão
+        if (smoothHold && !interpolationSaved)
+        {
+            savedInterpolation = rb.interpolation;
+            interpolationSaved = true;
+            rb.interpolation = RigidbodyInterpolation.None;
+        }
+
+        if (ignorePlayerCollisionsWhileHeld)
+            IgnorePlayerCollisions();
+    }
+
+    private void EndHoldState()
+    {
+        if (interpolationSaved)
+        {
+            rb.interpolation = savedInterpolation;
+            interpolationSaved = false;
+        }
+
+        if (ignoredPlayerColliders.Count > 0)
+            collisionRoutine = StartCoroutine(RestoreCollisionsAfterDelay());
+    }
+
+    private IEnumerator RestoreCollisionsAfterDelay()
+    {
+        yield return new WaitForSeconds(restoreCollisionDelay);
+
+        RestorePlayerCollisions();
+        collisionRoutine = null;
+    }
+
+    // Ignora colisões entre a bola e os colliders sólidos do player (triggers não são afetados)
+    private void IgnorePlayerCollisions()
+    {
+        RestorePlayerCollisions(); // limpa qualquer estado anterior
+
+        Transform root = origin != null ? origin.transform
+                       : (holder != null ? holder.transform.root : null);
+        if (root == null) return;
+
+        ballColliders = GetComponentsInChildren<Collider>(true);
+        Collider[] playerColliders = root.GetComponentsInChildren<Collider>(true);
+
+        for (int i = 0; i < playerColliders.Length; i++)
+        {
+            Collider pc = playerColliders[i];
+            if (pc == null || pc.isTrigger) continue;
+            if (pc.transform.IsChildOf(transform)) continue; // collider da própria bola
+
+            for (int j = 0; j < ballColliders.Length; j++)
+            {
+                if (ballColliders[j] != null)
+                    Physics.IgnoreCollision(ballColliders[j], pc, true);
+            }
+            ignoredPlayerColliders.Add(pc);
+        }
+
+        Log("Anti-tremor: " + ignoredPlayerColliders.Count + " colliders do player ignorados enquanto a bola está na mão.");
+    }
+
+    private void RestorePlayerCollisions()
+    {
+        if (ignoredPlayerColliders.Count == 0) return;
+
+        if (ballColliders != null)
+        {
+            for (int i = 0; i < ignoredPlayerColliders.Count; i++)
+            {
+                Collider pc = ignoredPlayerColliders[i];
+                if (pc == null) continue;
+
+                for (int j = 0; j < ballColliders.Length; j++)
+                {
+                    if (ballColliders[j] != null)
+                        Physics.IgnoreCollision(ballColliders[j], pc, false);
+                }
+            }
+        }
+
+        ignoredPlayerColliders.Clear();
+    }
+
+    // ---------------------------------------------------------------------
+    // Trail
+    // ---------------------------------------------------------------------
+
+    private void StartTrailForThrow(float throwSpeed)
+    {
+        HideTrail();
+
+        if (!useTrail || trail == null) return;
+
+        if (throwSpeed < trailMinThrowSpeed)
+        {
+            Log("Soltou devagar (" + throwSpeed.ToString("F1") + " m/s): sem trail.");
+            return;
+        }
+
+        trailRoutine = StartCoroutine(TrailRoutine());
+    }
+
+    // Espera o delay, liga o trail pelo tempo configurado e desliga
+    private IEnumerator TrailRoutine()
+    {
+        if (trailDelay > 0f)
+            yield return new WaitForSeconds(trailDelay);
+
+        if (trail == null) yield break;
+
+        trail.Clear();          // evita um risco ligando o ponto antigo ao ponto atual
+        trail.emitting = true;
+
+        yield return new WaitForSeconds(trailDuration);
+
+        if (trail != null)
+            trail.emitting = false; // o rastro que sobrou some pelo "Time" do TrailRenderer
+
+        trailRoutine = null;
+    }
+
+    private void HideTrail()
+    {
+        if (trailRoutine != null)
+        {
+            StopCoroutine(trailRoutine);
+            trailRoutine = null;
+        }
+
+        if (trail != null)
+        {
+            trail.emitting = false;
+            trail.Clear();
+        }
     }
 
     // ---------------------------------------------------------------------

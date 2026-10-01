@@ -12,6 +12,9 @@ using UnityEngine.Events;
 /// 2. Create two empty GameObjects marking opposite corners of your spawn
 ///    area (same Y height = water surface) and assign them below.
 /// 3. Assign the prefab, tweak the numbers, hit play.
+///
+/// The area is placed by hand in the scene. The difficulty menu can then move it
+/// closer to / farther from the player via SetSpawnOffset (0 = original position).
 /// </summary>
 public class TargetSpawner : MonoBehaviour
 {
@@ -47,8 +50,22 @@ public class TargetSpawner : MonoBehaviour
     private int hitsSoFar;
     private bool gameWon;
 
+    // Posição original da área (colocada à mão na cena) e referência do player
+    private Vector3 originalCornerA;
+    private Vector3 originalCornerB;
+    private bool cornersCached;
+
+    private Vector3 areaDirection = Vector3.forward; // direção player -> centro da área
+    private float originalDistance;                  // distância horizontal player -> centro da área
+    private bool referenceCached;
+
     public int HitsSoFar => hitsSoFar;
     public int HitsToWin => hitsToWin;
+
+    private void Awake()
+    {
+        CacheOriginalCorners();
+    }
 
     private void Start()
     {
@@ -60,6 +77,71 @@ public class TargetSpawner : MonoBehaviour
             StartCoroutine(SpawnRoutine(Random.Range(0f, 0.5f)));
         }
     }
+
+    // ---------------------------------------------------------------------
+    // Distância da área em relação ao player (usado pelo menu de dificuldade)
+    // ---------------------------------------------------------------------
+
+    private void CacheOriginalCorners()
+    {
+        if (cornersCached || areaCornerA == null || areaCornerB == null) return;
+
+        originalCornerA = areaCornerA.position;
+        originalCornerB = areaCornerB.position;
+        cornersCached = true;
+    }
+
+    // Guarda, uma única vez, a direção e a distância originais entre o player e a área
+    private void CacheReference(Vector3 playerPosition)
+    {
+        if (referenceCached) return;
+
+        Vector3 center = (originalCornerA + originalCornerB) * 0.5f;
+        Vector3 toArea = center - playerPosition;
+        toArea.y = 0f;
+
+        originalDistance = toArea.magnitude;
+        areaDirection = originalDistance > 0.001f ? toArea / originalDistance : Vector3.forward;
+        referenceCached = true;
+    }
+
+    /// <summary>
+    /// Desloca a área de spawn em relação à posição ORIGINAL (a que foi colocada na cena).
+    /// offset = 0  -> posição original
+    /// offset > 0  -> mais longe do player
+    /// offset < 0  -> mais perto do player (nunca abaixo de minDistanceFromPlayer)
+    /// </summary>
+    public void SetSpawnOffset(Vector3 playerPosition, float offset, float minDistanceFromPlayer = 1f)
+    {
+        CacheOriginalCorners();
+        if (!cornersCached) return;
+        CacheReference(playerPosition);
+
+        // Só limita ao aproximar; o offset 0 sempre mantém a posição original
+        float limit = Mathf.Min(0f, minDistanceFromPlayer - originalDistance);
+        float finalOffset = Mathf.Max(offset, limit);
+
+        Vector3 delta = areaDirection * finalOffset; // y = 0: a altura da água não muda
+        areaCornerA.position = originalCornerA + delta;
+        areaCornerB.position = originalCornerB + delta;
+    }
+
+    /// <summary>
+    /// Coloca o centro da área a 'distance' metros do player (distância absoluta),
+    /// mantendo a direção e a altura originais.
+    /// </summary>
+    public void SetSpawnDistance(Vector3 playerPosition, float distance)
+    {
+        CacheOriginalCorners();
+        if (!cornersCached) return;
+        CacheReference(playerPosition);
+
+        SetSpawnOffset(playerPosition, distance - originalDistance, 0.5f);
+    }
+
+    // ---------------------------------------------------------------------
+    // Spawn dos alvos
+    // ---------------------------------------------------------------------
 
     private IEnumerator SpawnRoutine(float delay)
     {
@@ -156,33 +238,5 @@ public class TargetSpawner : MonoBehaviour
             gameWon = true;
             onWin?.Invoke();
         }
-    }
-    [Header("Distance From Player")]
-    [Tooltip("O empty PAI que contém as duas quinas (areaCornerA e areaCornerB)")]
-    [SerializeField] private Transform areaRoot;
-
-    private Vector3 areaDirection = Vector3.forward; // direção player -> área
-    private bool directionCached;
-
-    /// <summary>
-    /// Move a área de spawn para ficar a 'distance' metros do player,
-    /// mantendo a direção original e a altura (nível da água).
-    /// </summary>
-    public void SetSpawnDistance(Vector3 playerPosition, float distance)
-    {
-        if (areaRoot == null) return;
-
-        // guarda a direção original na primeira chamada
-        if (!directionCached)
-        {
-            Vector3 dir = areaRoot.position - playerPosition;
-            dir.y = 0f;
-            areaDirection = dir.sqrMagnitude > 0.001f ? dir.normalized : Vector3.forward;
-            directionCached = true;
-        }
-
-        Vector3 pos = playerPosition + areaDirection * distance;
-        pos.y = areaRoot.position.y; // mantém a altura da água
-        areaRoot.position = pos;
     }
 }
