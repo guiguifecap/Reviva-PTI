@@ -7,12 +7,16 @@ using UnityEngine.XR.Interaction.Toolkit.Filtering;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
+public enum SpawnMode { Random, Sequential }
+
 [RequireComponent(typeof(XRSimpleInteractable))]
 public class BasketSpawner : MonoBehaviour
 {
-    [Header("Prefab")]
-    [Tooltip("Prefab da esfera. Precisa ter Rigidbody + XRGrabInteractable.")]
-    [SerializeField] private XRGrabInteractable spherePrefab;
+    [Header("Prefabs")]
+    [Tooltip("Lista de prefabs de esfera. Cada um precisa ter Rigidbody + XRGrabInteractable.")]
+    [SerializeField] private XRGrabInteractable[] spherePrefabs;
+    [Tooltip("Random: sorteia a cada spawn. Sequential: segue a ordem da lista em loop.")]
+    [SerializeField] private SpawnMode spawnMode = SpawnMode.Random;
 
     [Header("Spawn")]
     [SerializeField] private float spawnCooldown = 0.3f;
@@ -41,6 +45,7 @@ public class BasketSpawner : MonoBehaviour
     private Collider[] basketColliders;
     private float lastSpawnTime = -10f;
     private float nextRefreshTime;
+    private int nextIndex;
 
     private readonly List<XRBaseInputInteractor> hovering = new List<XRBaseInputInteractor>();
     private readonly List<XRBaseInputInteractor> allInteractors = new List<XRBaseInputInteractor>();
@@ -121,6 +126,31 @@ public class BasketSpawner : MonoBehaviour
                 TryFarGrab(it);
             }
         }
+    }
+
+    // ---------------------------------------------------------------------
+    // Escolha do prefab
+    // ---------------------------------------------------------------------
+
+    private XRGrabInteractable PickPrefab()
+    {
+        if (spherePrefabs == null || spherePrefabs.Length == 0) return null;
+
+        for (int tries = 0; tries < spherePrefabs.Length; tries++)
+        {
+            XRGrabInteractable p;
+            if (spawnMode == SpawnMode.Random)
+            {
+                p = spherePrefabs[Random.Range(0, spherePrefabs.Length)];
+            }
+            else
+            {
+                p = spherePrefabs[nextIndex];
+                nextIndex = (nextIndex + 1) % spherePrefabs.Length;
+            }
+            if (p != null) return p; // ignora slots vazios
+        }
+        return null;
     }
 
     // ---------------------------------------------------------------------
@@ -308,9 +338,10 @@ public class BasketSpawner : MonoBehaviour
     {
         yield return null;
 
-        if (spherePrefab == null)
+        XRGrabInteractable prefab = PickPrefab();
+        if (prefab == null)
         {
-            Debug.LogError("[BasketSpawner] Sphere Prefab não foi atribuído.", this);
+            Debug.LogError("[BasketSpawner] Nenhum Sphere Prefab foi atribuído na lista.", this);
             yield break;
         }
 
@@ -328,10 +359,10 @@ public class BasketSpawner : MonoBehaviour
             manager.SelectExit(interactor, selBasket);
 
         // 2. Instancia a esfera na posição da mão
-        Transform hand = interactor.GetAttachTransform(spherePrefab);
+        Transform hand = interactor.GetAttachTransform(prefab);
         if (hand == null) hand = interactor.transform;
 
-        XRGrabInteractable ball = Instantiate(spherePrefab, hand.position, hand.rotation);
+        XRGrabInteractable ball = Instantiate(prefab, hand.position, hand.rotation);
         IXRSelectInteractable selBall = ball;
         spawnedBalls.Add(ball);
 
