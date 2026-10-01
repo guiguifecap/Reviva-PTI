@@ -157,4 +157,32 @@ public class TargetSpawner : MonoBehaviour
             onWin?.Invoke();
         }
     }
+    [Header("Distance From Player")]
+    [Tooltip("O empty PAI que contém as duas quinas (areaCornerA e areaCornerB)")]
+    [SerializeField] private Transform areaRoot;
+
+    private Vector3 areaDirection = Vector3.forward; // direção player -> área
+    private bool directionCached;
+
+    /// <summary>
+    /// Move a área de spawn para ficar a 'distance' metros do player,
+    /// mantendo a direção original e a altura (nível da água).
+    /// </summary>
+    public void SetSpawnDistance(Vector3 playerPosition, float distance)
+    {
+        if (areaRoot == null) return;
+
+        // guarda a direção original na primeira chamada
+        if (!directionCached)
+        {
+            Vector3 dir = areaRoot.position - playerPosition;
+            dir.y = 0f;
+            areaDirection = dir.sqrMagnitude > 0.001f ? dir.normalized : Vector3.forward;
+            directionCached = true;
+        }
+
+        Vector3 pos = playerPosition + areaDirection * distance;
+        pos.y = areaRoot.position.y; // mantém a altura da água
+        areaRoot.position = pos;
+    }
 }

@@ -19497,7 +19497,7 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.3
+  near clip plane: 0.01
   far clip plane: 1000
   field of view: 60
   orthographic: 0
@@ -36467,6 +36467,7 @@ GameObject:
   - component: {fileID: 1827409519}
   - component: {fileID: 1827409518}
   - component: {fileID: 1827409517}
+  - component: {fileID: 1827409521}
   m_Layer: 8
   m_Name: XR origin Player
   m_TagString: Player
@@ -36547,6 +36548,29 @@ Transform:
   - {fileID: 1226922613}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!136 &1827409521
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1827409516}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.13
+  m_Height: 1.35
+  m_Direction: 1
+  m_Center: {x: 0, y: -0.34, z: 0}
 --- !u!1 &1832052759
 GameObject:
   m_ObjectHideFlags: 0

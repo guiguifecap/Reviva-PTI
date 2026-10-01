@@ -14,7 +14,7 @@ public class PalanqueChao : MonoBehaviour
         
     }
 
-    private void OnCollisionEnter(Collision collision)
+    private void OnTriggerEnter(Collision collision)
     {
         if (collision.gameObject.CompareTag("Player"))
         {
