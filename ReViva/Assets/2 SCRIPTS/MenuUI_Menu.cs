@@ -11,6 +11,14 @@ public class MenuUI_Menu : MonoBehaviour
     [Header("Loading UI")]
     public GameObject loadingUI;
 
+    [Header("UI")]
+    public CanvasGroup UIshit;
+    [SerializeField] float duration = 0.5f;
+    [SerializeField] float delay = 2f;
+    public CanvasGroup UIBranco;
+    [SerializeField] float durationBranco = 0.5f;
+    [SerializeField] float delayBranco = 2f;
+
     [SerializeField] GameObject ConfigPanelMenu;
 
 
@@ -60,6 +68,43 @@ public class MenuUI_Menu : MonoBehaviour
 
             button.dotCanvasGroup.alpha = 0f;
         }
+
+
+        StartCoroutine(FadeBranco(1f, 0f));
+        StartCoroutine(FadeCoisa(0f, 1f));
+    }
+
+    // ============================================================
+    // Animação
+    // ============================================================
+    IEnumerator FadeCoisa(float from, float to)
+    {
+
+        yield return new WaitForSeconds(delay);
+        float t = 0f;
+        UIshit.alpha = from;
+        while (t < duration)
+        {
+            t += Time.deltaTime; // works even if timeScale = 0
+            UIshit.alpha = Mathf.Lerp(from, to, t / duration);
+            yield return null;
+        }
+        UIshit.alpha = to;
+    }
+
+    IEnumerator FadeBranco(float from, float to)
+    {
+
+        yield return new WaitForSeconds(delayBranco);
+        float t = 0f;
+        UIBranco.alpha = from;
+        while (t < durationBranco)
+        {
+            t += Time.deltaTime; // works even if timeScale = 0
+            UIBranco.alpha = Mathf.Lerp(from, to, t / duration);
+            yield return null;
+        }
+        UIBranco.alpha = to;
     }
 
 
