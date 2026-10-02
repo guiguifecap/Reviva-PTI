@@ -32,13 +32,13 @@ Material:
   m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses: []
-  m_LockedProperties: 
+  m_LockedProperties: _BladeBendCurve
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _BendDelta: 0.032
+    - _BendDelta: 0
     - _BladeBendDistance: 0.29
     - _BladeHeightMax: 0.39
     - _BladeHeightMin: 0.21
