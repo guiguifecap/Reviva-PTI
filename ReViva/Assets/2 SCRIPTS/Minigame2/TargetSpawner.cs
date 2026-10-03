@@ -4,24 +4,33 @@ using UnityEngine;
 using UnityEngine.Events;
 
 /// <summary>
-/// Drives the whole mini-game: spawns targets at random points in a defined
-/// area, keeps a set number active at once, and tracks hits vs. the win goal.
+/// Drives the whole mini-game: spawns targets, keeps a set number active at once,
+/// and tracks hits vs. the win goal.
 ///
-/// Setup:
-/// 1. Make a target prefab with WaterTarget.cs + a collider on it.
-/// 2. Create two empty GameObjects marking opposite corners of your spawn
-///    area (same Y height = water surface) and assign them below.
-/// 3. Assign the prefab, tweak the numbers, hit play.
-///
-/// The area is placed by hand in the scene. The difficulty menu can then move it
-/// closer to / farther from the player via SetSpawnOffset (0 = original position).
+/// - Nada spawna até StartTreatment(); StopTreatment() para de spawnar.
+/// - Os alvos aparecem EXATAMENTE à distância configurada do ponto de referência (Empty),
+///   num arco à frente dele (spawnArcAngle). Nunca atrás.
+/// - areaCornerA/B agora só definem a ALTURA da água (Y). Sem ponto de referência,
+///   usa a área retangular antiga (colocada à mão na cena).
 /// </summary>
 public class TargetSpawner : MonoBehaviour
 {
     [Header("Setup")]
     [SerializeField] private WaterTarget targetPrefab;
+    [Tooltip("Define a altura da água (Y). Também usados como área retangular se não houver ponto de referência.")]
     [SerializeField] private Transform areaCornerA;
     [SerializeField] private Transform areaCornerB;
+
+    [Header("Posição dos Alvos")]
+    [Tooltip("Abertura total (graus) do arco à frente do ponto de referência onde os alvos podem aparecer. " +
+             "90 = 45° para cada lado do forward.")]
+    [SerializeField, Range(10f, 180f)] private float spawnArcAngle = 90f;
+
+    [Header("Debug")]
+    [Tooltip("Avisa no Console se a distância REAL do alvo ao ponto de referência for diferente da configurada.")]
+    [SerializeField] private bool verificarDistancia = true;
+    [Tooltip("Desenha o arco de spawn na Scene/Game view (Gizmos ligados).")]
+    [SerializeField] private bool desenharArco = true;
 
     [Header("Win / Spawn Settings")]
     [Tooltip("How many successful hits are needed to win")]
@@ -50,102 +59,114 @@ public class TargetSpawner : MonoBehaviour
     private int hitsSoFar;
     private bool gameWon;
 
-    // Posição original da área (colocada à mão na cena) e referência do player
-    private Vector3 originalCornerA;
-    private Vector3 originalCornerB;
-    private bool cornersCached;
+    // Controle de início/parada e de spawns agendados
+    private bool started;
+    private int pendingSpawns;
 
-    private Vector3 areaDirection = Vector3.forward; // direção player -> centro da área
-    private float originalDistance;                  // distância horizontal player -> centro da área
-    private bool referenceCached;
+    // Distância configurada pelo menu
+    private Transform spawnReference;
+    private float spawnDistance = 5f;
 
     public int HitsSoFar => hitsSoFar;
     public int HitsToWin => hitsToWin;
-
-    private void Awake()
-    {
-        CacheOriginalCorners();
-    }
+    public int MaxActiveTargets => maxActiveTargets;
+    /// <summary>True enquanto o tratamento está rodando (false após parar ou vencer).</summary>
+    public bool HasStarted => started;
 
     private void Start()
     {
         hitsSoFar = 0;
         gameWon = false;
-
-        for (int i = 0; i < maxActiveTargets; i++)
-        {
-            StartCoroutine(SpawnRoutine(Random.Range(0f, 0.5f)));
-        }
+        // Não spawna nada aqui: espera StartTreatment().
     }
 
     // ---------------------------------------------------------------------
-    // Distância da área em relação ao player (usado pelo menu de dificuldade)
+    // Iniciar / parar tratamento
     // ---------------------------------------------------------------------
 
-    private void CacheOriginalCorners()
+    /// <summary>Botão "Iniciar Tratamento". Só a partir daqui os alvos aparecem.</summary>
+    public void StartTreatment()
     {
-        if (cornersCached || areaCornerA == null || areaCornerB == null) return;
+        if (started) return;
 
-        originalCornerA = areaCornerA.position;
-        originalCornerB = areaCornerB.position;
-        cornersCached = true;
+        started = true;
+        hitsSoFar = 0;
+        gameWon = false;
+        pendingSpawns = 0;
+
+        FillSlots(new Vector2(0f, 0.5f));
     }
 
-    // Guarda, uma única vez, a direção e a distância originais entre o player e a área
-    private void CacheReference(Vector3 playerPosition)
+    /// <summary>Botão "Parar Tratamento". Para de spawnar; os alvos que já estão fora afundam sozinhos.</summary>
+    public void StopTreatment()
     {
-        if (referenceCached) return;
+        started = false;
+        StopSpawning();
+    }
 
-        Vector3 center = (originalCornerA + originalCornerB) * 0.5f;
-        Vector3 toArea = center - playerPosition;
-        toArea.y = 0f;
+    private void StopSpawning()
+    {
+        StopAllCoroutines();
+        pendingSpawns = 0;
+    }
 
-        originalDistance = toArea.magnitude;
-        areaDirection = originalDistance > 0.001f ? toArea / originalDistance : Vector3.forward;
-        referenceCached = true;
+    // ---------------------------------------------------------------------
+    // Configurações em tempo de execução (menu de dificuldade)
+    // ---------------------------------------------------------------------
+
+    public void SetHitsToWin(int value)
+    {
+        hitsToWin = Mathf.Max(1, value);
+
+        // Se já estava rodando e o novo objetivo já foi atingido, vence agora
+        if (started && !gameWon && hitsSoFar >= hitsToWin)
+            Win();
+    }
+
+    public void SetMaxActiveTargets(int value)
+    {
+        maxActiveTargets = Mathf.Max(1, value);
+
+        // Aumentou: preenche as vagas novas. Diminuiu: os alvos extras
+        // simplesmente não são repostos quando afundarem.
+        FillSlots(spawnDelayRange);
     }
 
     /// <summary>
-    /// Desloca a área de spawn em relação à posição ORIGINAL (a que foi colocada na cena).
-    /// offset = 0  -> posição original
-    /// offset > 0  -> mais longe do player
-    /// offset < 0  -> mais perto do player (nunca abaixo de minDistanceFromPlayer)
+    /// Os alvos passam a aparecer exatamente a 'distance' metros de 'reference',
+    /// num arco à frente dele (direção forward, no plano horizontal).
     /// </summary>
-    public void SetSpawnOffset(Vector3 playerPosition, float offset, float minDistanceFromPlayer = 1f)
+    public void SetSpawnDistance(Transform reference, float distance)
     {
-        CacheOriginalCorners();
-        if (!cornersCached) return;
-        CacheReference(playerPosition);
-
-        // Só limita ao aproximar; o offset 0 sempre mantém a posição original
-        float limit = Mathf.Min(0f, minDistanceFromPlayer - originalDistance);
-        float finalOffset = Mathf.Max(offset, limit);
-
-        Vector3 delta = areaDirection * finalOffset; // y = 0: a altura da água não muda
-        areaCornerA.position = originalCornerA + delta;
-        areaCornerB.position = originalCornerB + delta;
-    }
-
-    /// <summary>
-    /// Coloca o centro da área a 'distance' metros do player (distância absoluta),
-    /// mantendo a direção e a altura originais.
-    /// </summary>
-    public void SetSpawnDistance(Vector3 playerPosition, float distance)
-    {
-        CacheOriginalCorners();
-        if (!cornersCached) return;
-        CacheReference(playerPosition);
-
-        SetSpawnOffset(playerPosition, distance - originalDistance, 0.5f);
+        spawnReference = reference;
+        spawnDistance = Mathf.Max(0.1f, distance);
     }
 
     // ---------------------------------------------------------------------
     // Spawn dos alvos
     // ---------------------------------------------------------------------
 
+    // Garante que (ativos + agendados) chegue ao máximo configurado
+    private void FillSlots(Vector2 delayRange)
+    {
+        if (!started || gameWon) return;
+
+        while (activeTargets.Count + pendingSpawns < maxActiveTargets)
+        {
+            pendingSpawns++;
+            StartCoroutine(SpawnRoutine(Random.Range(delayRange.x, delayRange.y)));
+        }
+    }
+
     private IEnumerator SpawnRoutine(float delay)
     {
         yield return new WaitForSeconds(delay);
+
+        pendingSpawns--;
+
+        if (!started || gameWon) yield break;
+        if (activeTargets.Count >= maxActiveTargets) yield break;
+
         SpawnOne();
     }
 
@@ -154,33 +175,104 @@ public class TargetSpawner : MonoBehaviour
         if (gameWon) return;
 
         WaterTarget target = GetFromPool();
-        Vector3 spawnPos = GetRandomPointInArea();
+        Vector3 spawnPos = GetRandomSpawnPoint();
         float stayDuration = Random.Range(stayDurationRange.x, stayDurationRange.y);
         float riseHeight = Random.Range(riseHeightRange.x, riseHeightRange.y);
 
         target.Init(this, spawnPos, riseHeight, riseDuration, sinkDuration, stayDuration);
         activeTargets.Add(target);
+
+        VerificarDistanciaReal(target, spawnPos);
     }
 
-    private Vector3 GetRandomPointInArea()
+    // Compara a distância pedida com a posição REAL do alvo na cena
+    private void VerificarDistanciaReal(WaterTarget target, Vector3 spawnPos)
+    {
+        if (!verificarDistancia || spawnReference == null) return;
+
+        Vector3 delta = target.transform.position - spawnReference.position;
+        delta.y = 0f;
+        float real = delta.magnitude;
+
+        if (Mathf.Abs(real - spawnDistance) > 0.05f)
+        {
+            Debug.LogWarning($"[TargetSpawner] Distância pedida {spawnDistance:F2} m, mas o alvo ficou a {real:F2} m do ponto de referência. " +
+                             $"Escala do spawner: {transform.lossyScale}, escala do ponto de referência: {spawnReference.lossyScale}. " +
+                             $"Posição calculada: {spawnPos}, posição real do alvo: {target.transform.position}.");
+        }
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (!desenharArco || spawnReference == null) return;
+
+        Vector3 origin = spawnReference.position;
+        Vector3 forward = Vector3.ProjectOnPlane(spawnReference.forward, Vector3.up);
+        if (forward.sqrMagnitude < 0.0001f) forward = Vector3.forward;
+        forward.Normalize();
+
+        float y = areaCornerA != null ? areaCornerA.position.y : origin.y;
+        float half = spawnArcAngle * 0.5f;
+        const int steps = 24;
+
+        Gizmos.color = Color.cyan;
+        Vector3 prev = Vector3.zero;
+        for (int i = 0; i <= steps; i++)
+        {
+            float angle = Mathf.Lerp(-half, half, i / (float)steps);
+            Vector3 p = origin + Quaternion.AngleAxis(angle, Vector3.up) * forward * spawnDistance;
+            p.y = y;
+            if (i > 0) Gizmos.DrawLine(prev, p);
+            prev = p;
+        }
+
+        Gizmos.DrawLine(origin, origin + Quaternion.AngleAxis(-half, Vector3.up) * forward * spawnDistance);
+        Gizmos.DrawLine(origin, origin + Quaternion.AngleAxis(half, Vector3.up) * forward * spawnDistance);
+    }
+
+    private Vector3 GetRandomSpawnPoint()
     {
         const int maxAttempts = 30;
-        Vector3 candidate = RandomPointInBounds();
+        Vector3 candidate = RandomCandidate();
 
         for (int i = 0; i < maxAttempts; i++)
         {
-            candidate = RandomPointInBounds();
+            candidate = RandomCandidate();
             if (IsFarEnoughFromActiveTargets(candidate))
             {
                 return candidate;
             }
         }
 
-        // Couldn't find a fully clear spot in time (area too crowded/small) -
+        // Couldn't find a fully clear spot in time (arc too crowded/small) -
         // just use the last attempt so spawning never stalls.
         return candidate;
     }
 
+    private Vector3 RandomCandidate()
+    {
+        return spawnReference != null ? RandomPointOnArc() : RandomPointInBounds();
+    }
+
+    // Ponto exatamente a spawnDistance do ponto de referência, dentro do arco à frente dele
+    private Vector3 RandomPointOnArc()
+    {
+        Vector3 origin = spawnReference.position;
+
+        Vector3 forward = Vector3.ProjectOnPlane(spawnReference.forward, Vector3.up);
+        if (forward.sqrMagnitude < 0.0001f) forward = Vector3.forward;
+        forward.Normalize();
+
+        float half = spawnArcAngle * 0.5f;
+        float angle = Random.Range(-half, half);
+        Vector3 dir = Quaternion.AngleAxis(angle, Vector3.up) * forward;
+
+        Vector3 p = origin + dir * spawnDistance;
+        p.y = areaCornerA != null ? areaCornerA.position.y : origin.y; // nível da água
+        return p;
+    }
+
+    // Fallback: área retangular antiga (sem ponto de referência)
     private Vector3 RandomPointInBounds()
     {
         float x = Random.Range(areaCornerA.position.x, areaCornerB.position.x);
@@ -219,10 +311,7 @@ public class TargetSpawner : MonoBehaviour
         target.gameObject.SetActive(false);
         pool.Add(target);
 
-        if (!gameWon)
-        {
-            StartCoroutine(SpawnRoutine(Random.Range(spawnDelayRange.x, spawnDelayRange.y)));
-        }
+        FillSlots(spawnDelayRange);
     }
 
     /// <summary>Called by WaterTarget.Hit().</summary>
@@ -234,9 +323,14 @@ public class TargetSpawner : MonoBehaviour
         onHitRegistered?.Invoke();
 
         if (hitsSoFar >= hitsToWin)
-        {
-            gameWon = true;
-            onWin?.Invoke();
-        }
+            Win();
+    }
+
+    private void Win()
+    {
+        gameWon = true;
+        started = false;   // o botão volta para "Iniciar Tratamento"
+        StopSpawning();
+        onWin?.Invoke();
     }
 }
