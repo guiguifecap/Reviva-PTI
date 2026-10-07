@@ -35,17 +35,25 @@ Material:
   m_LockedProperties: _BladeBendCurve
   m_SavedProperties:
     serializedVersion: 3
-    m_TexEnvs: []
+    m_TexEnvs:
+    - _BladeTexture:
+        m_Texture: {fileID: 2800000, guid: af87df5895460b7408f6fc6da4cdcfd3, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _GrassMap:
+        m_Texture: {fileID: 2800000, guid: f31e9bb192c2bf14daac11f4eca30a35, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _BendDelta: 0
+    - _BendDelta: 0.533
     - _BladeBendDistance: 0.29
-    - _BladeHeightMax: 0.39
+    - _BladeHeightMax: 0.32
     - _BladeHeightMin: 0.21
     - _BladeSegments: 1
-    - _BladeWidthMax: 0.0213
-    - _BladeWidthMin: 0.0129
-    - _TessellationGrassDistance: 0.01
+    - _BladeWidthMax: 0.0235
+    - _BladeWidthMin: 0.0172
+    - _TessellationGrassDistance: 0.053
     - _WindFrequency: 0.01
     m_Colors:
     - _TipColor: {r: 0.19010323, g: 0.4528302, b: 0.19683981, a: 1}
