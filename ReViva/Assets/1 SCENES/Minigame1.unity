@@ -36440,7 +36440,6 @@ GameObject:
   - component: {fileID: 1751652809}
   - component: {fileID: 1751652807}
   - component: {fileID: 1751652808}
-  - component: {fileID: 1751652815}
   - component: {fileID: 1751652812}
   - component: {fileID: 1751652813}
   m_Layer: 0
@@ -36475,8 +36474,8 @@ MonoBehaviour:
   padraoPedrasPorDescanso: 5
   degrais: {fileID: 1751652809}
   goniometria: {fileID: 1751652808}
-  botaoCalibrar: {fileID: 0}
-  textoBotaoCalibrar: {fileID: 0}
+  botaoCalibrar: {fileID: 752839407}
+  textoBotaoCalibrar: {fileID: 308691917}
   statusCalibracao: {fileID: 1005031205}
   barraProgressoCalibracao: {fileID: 0}
   statusToggle: {fileID: 957028359}
@@ -36623,32 +36622,6 @@ MonoBehaviour:
   difficulty: 0
   alcanceMaximoCM: 150
   usarMetadeDoAlcance: 0
---- !u!114 &1751652815
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1751652806}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ede2f462db59a3e478d0c8c1d0baff25, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GoniometriaGenerico
-  head: {fileID: 75470470}
-  handRight: {fileID: 1548915912}
-  handLeft: {fileID: 906155026}
-  tempoRelaxado: 2
-  tempoMaximo: 3
-  ajusteClinico: 0.05
-  alcanceMinimoValido: 0.2
-  usarSomenteGiroDaCabeca: 1
-  suavizacao: 10
-  calibrando: 0
-  calibrado: 0
-  progressoCalibracao: 0
-  faseAtual: 
-  alcanceMaximo: 0
 --- !u!4 &1759697368 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 780fae832bc6a4e448c82065fda71a07, type: 3}

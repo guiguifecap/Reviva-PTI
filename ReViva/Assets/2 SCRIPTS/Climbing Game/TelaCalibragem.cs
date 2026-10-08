@@ -155,11 +155,6 @@ public class TelaCalibragem : MonoBehaviour
         if (!gerarPedrasAoTerminarCalibracao)
             return;
 
-        if (degrais != null)
-        {
-            Debug.Log("[TelaCalibragem] Gerando pedras imediatamente após a calibração.");
-            degrais.GerarDegraus();
-        }
         else
         {
             Debug.LogWarning("[TelaCalibragem] Calibração concluída, mas 'Degrais' não foi encontrado — pedras não foram geradas automaticamente.");
