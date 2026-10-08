@@ -1,6 +1,6 @@
-﻿using TMPro;
+﻿using System.Collections;
+using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -18,15 +18,12 @@ public class MenuUI_Minigame1 : MonoBehaviour
     public TextMeshProUGUI difficultyText;
     private bool advancedDifficulty = false;
 
-
     [Header("Configuração de Séries (Repetições)")]
     [Tooltip("Input field para definir o número de séries. É a ÚNICA fonte desse valor — o Degrais nunca decide isso sozinho.")]
     public TMP_InputField inputNumeroDeSeries;
     [Tooltip("Input field para definir quantas pedras por série. É a ÚNICA fonte desse valor — o Degrais nunca decide isso sozinho.")]
     public TMP_InputField inputPedrasPorDescanso;
-    [Tooltip("Valor usado no campo 'Número de Séries' caso ele esteja vazio na primeira vez que o jogo abre.")]
     public int padraoNumeroDeSeries = 3;
-    [Tooltip("Valor usado no campo 'Pedras Por Descanso' caso ele esteja vazio na primeira vez que o jogo abre.")]
     public int padraoPedrasPorDescanso = 5;
 
     [Header("Componentes do Jogo")]
@@ -34,20 +31,34 @@ public class MenuUI_Minigame1 : MonoBehaviour
     public GoniometriaClimb goniometria;
 
     [Header("Calibração")]
+    public Button botaoCalibrar;
+    public TextMeshProUGUI textoBotaoCalibrar;
     public TextMeshProUGUI statusCalibracao;
     public Slider barraProgressoCalibracao;
     public Toggle statusToggle;
 
-    // DEPOIS: só 2 textos, um por lado, usados tanto para tempo real quanto para resultado final
+    [Header("Iniciar Tratamento")]
+    public Button botaoIniciarTratamento;
+    public TextMeshProUGUI textoBotaoIniciar;
+    [Tooltip("Texto onde aparece a contagem regressiva (3, 2, 1...). Fica vazio quando não está contando.")]
+    public TextMeshProUGUI textoContagem;
+    [Tooltip("Quantos segundos de contagem depois de clicar em Iniciar.")]
+    public int contagemInicial = 3;
+    [Tooltip("Texto mostrado quando a contagem termina e as pedras aparecem.")]
+    public string textoComecou = "JÁ!";
+    [Tooltip("Por quantos segundos o texto acima fica na tela.")]
+    public float tempoTextoComecou = 0.7f;
+    [Tooltip("Se ligado, só deixa iniciar o tratamento depois de calibrar.")]
+    public bool exigirCalibracaoParaIniciar = true;
+
+    private Coroutine contagemRoutine;
+    private Coroutine textoFinalRoutine;
+    // true = pedras já foram geradas (tratamento rodando)
+    private bool tratamentoAtivo = false;
+
     [Header("Desempenho (Tempo Real + Resultado Final)")]
-    [Tooltip("Enquanto a sessão está rodando, mostra o uso em tempo real do braço direito. Ao finalizar a sessão, passa a mostrar o resultado/diagnóstico desse lado.")]
     public TextMeshProUGUI textoDireito;
-
-    [Tooltip("Enquanto a sessão está rodando, mostra o uso em tempo real do braço esquerdo. Ao finalizar a sessão, passa a mostrar o resultado/diagnóstico desse lado.")]
     public TextMeshProUGUI textoEsquerdo;
-
-    // Controla se os textos devem seguir atualizando em tempo real (false)
-    // ou se já foram travados no resultado final da sessão (true).
     private bool sessaoFinalizada = false;
 
     [Header("Cenas")]
@@ -61,28 +72,19 @@ public class MenuUI_Minigame1 : MonoBehaviour
     public GameObject PanelPause;
     public bool isPause;
 
-
     void Start()
     {
-        // ── Toggle de alcance (pode existir em qualquer cena) ──
         if (toggleMetadeAlcance != null)
             toggleMetadeAlcance.onValueChanged.AddListener(OnToggleAlcance);
-
-        // ── Slider de dificuldade: configura ANTES do guard ──
 
         AtualizarTextoDificuldade();
 
         if (GameSettings.Instance != null)
             GameSettings.Instance.difficulty = 0.7f;
 
-        if (toggleLight != null)
-            toggleLight.onValueChanged.AddListener(OnLightSelected);
-
-        if (toggleRegular != null)
-            toggleRegular.onValueChanged.AddListener(OnRegularSelected);
-
-        if (toggleHard != null)
-            toggleHard.onValueChanged.AddListener(OnHardSelected);
+        if (toggleLight != null) toggleLight.onValueChanged.AddListener(OnLightSelected);
+        if (toggleRegular != null) toggleRegular.onValueChanged.AddListener(OnRegularSelected);
+        if (toggleHard != null) toggleHard.onValueChanged.AddListener(OnHardSelected);
 
         if (difficultySlider != null)
         {
@@ -93,10 +95,11 @@ public class MenuUI_Minigame1 : MonoBehaviour
             difficultySlider.onValueChanged.AddListener(OnSliderChanged);
         }
 
-        // Começa no modo normal
-        SetAdvancedMode(false);
+        // Estado inicial dos botões
+        AtualizarBotaoCalibrar(false, false);
+        AtualizarBotaoIniciar();
 
-        // Começa no Regular
+        SetAdvancedMode(false);
         SelecionarDificuldade(0.7f, toggleRegular);
 
         // ── Guard: o resto só faz sentido na cena do jogo ──
@@ -110,11 +113,9 @@ public class MenuUI_Minigame1 : MonoBehaviour
             return;
         }
 
-        // Busca goniometria se não foi assignada no Inspector
         if (goniometria == null)
             goniometria = FindObjectOfType<GoniometriaClimb>();
 
-        // Busca degrais se não foi assignado no Inspector
         if (degrais == null)
             degrais = FindObjectOfType<Degrais>();
 
@@ -126,49 +127,39 @@ public class MenuUI_Minigame1 : MonoBehaviour
                 "Existe mais de um Degrais na cena — verifique a Hierarchy."
             );
 
-        // ── PASSO CRÍTICO: entrega as MESMAS referências de Input Field para o
-        // Degrais, para que GerarDegraus() sempre leia o valor direto da UI,
-        // não importa quem chamou a geração nem em que ordem os scripts rodaram.
         if (degrais != null)
         {
             degrais.inputNumeroDeSeries = inputNumeroDeSeries;
             degrais.inputPedrasPorDescanso = inputPedrasPorDescanso;
         }
 
-        // ── PASSO CRÍTICO: aplica os valores dos Input Fields no Degrais
-        // ANTES de registrar a calibração e antes de qualquer pedra existir.
-        // A partir daqui, pedrasPorDescanso/numeroDeSeries só mudam através
-        // desses campos — nunca através do Inspector do Degrais.
         ConfigurarInputsDeSerie();
 
-        // Registra callback de calibração (só depois dos valores de série já aplicados)
+        // Agora a calibração concluída NÃO gera pedras sozinha.
+        // As pedras só nascem quando o jogador clica em "Iniciar Tratamento".
         if (goniometria != null)
-            goniometria.OnCalibracaoConcluida += RegenerarDegraus;
+            goniometria.OnCalibracaoConcluida += AoCalibracaoConcluida;
         else
             Debug.LogWarning("[MenuUI] GoniometriaClimb não encontrada na cena!");
-
     }
 
     void Update()
     {
+        // Pausa funciona mesmo sem goniometria
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            isPause = !isPause;
+            if (PanelPause != null) PanelPause.SetActive(isPause);
+        }
+
+        AtualizarBotaoIniciar();
+
         if (goniometria == null) return;
         AtualizarStatus();
         AtualizarTempoReal();
-
-        if (Input.GetKeyDown(KeyCode.Escape) && isPause == false)
-        {
-            PanelPause.SetActive(true);
-            isPause = true;
-        }
-        else if (Input.GetKeyDown(KeyCode.Escape) && isPause == true)
-        {
-            PanelPause.SetActive(false);
-            isPause = false;
-        }
     }
 
     // ── Botões ─────────────────────────────────────────────
-
     public void ConfigButtonOpen()
     {
         PanelPause.SetActive(true);
@@ -181,16 +172,122 @@ public class MenuUI_Minigame1 : MonoBehaviour
         isPause = false;
     }
 
-
-
-
-
-
-
     void OnDestroy()
     {
         if (goniometria != null)
-            goniometria.OnCalibracaoConcluida -= RegenerarDegraus;
+            goniometria.OnCalibracaoConcluida -= AoCalibracaoConcluida;
+    }
+
+    // Se a calibração terminar com o tratamento rodando (ex.: recalibrou), refaz as pedras.
+    void AoCalibracaoConcluida()
+    {
+        if (tratamentoAtivo)
+            RegenerarDegraus();
+    }
+
+    // ── Iniciar / parar tratamento ──────────────────────────
+    // Ligue este método no OnClick do botão "Iniciar Tratamento"
+    public void IniciarTratamento()
+    {
+        AlternarTratamento();
+    }
+
+    public void AlternarTratamento()
+    {
+        if (degrais == null)
+        {
+            Debug.LogWarning("[MenuUI] AlternarTratamento: Degrais não encontrado.");
+            return;
+        }
+
+        if (contagemRoutine != null)
+        {
+            // Clicou durante a contagem: cancela
+            CancelarContagem();
+        }
+        else if (tratamentoAtivo)
+        {
+            PararTratamento();
+        }
+        else
+        {
+            if (exigirCalibracaoParaIniciar && (goniometria == null || !goniometria.calibrado))
+            {
+                Debug.LogWarning("[MenuUI] Calibre o paciente antes de iniciar o tratamento.");
+                MostrarContagem("Calibre primeiro!");
+                if (textoFinalRoutine != null) StopCoroutine(textoFinalRoutine);
+                textoFinalRoutine = StartCoroutine(ApagarContagemDepois(1.5f));
+                return;
+            }
+
+            if (textoFinalRoutine != null) { StopCoroutine(textoFinalRoutine); textoFinalRoutine = null; }
+            contagemRoutine = StartCoroutine(ContagemEIniciar());
+        }
+
+        AtualizarBotaoIniciar();
+    }
+
+    IEnumerator ContagemEIniciar()
+    {
+        for (int i = Mathf.Max(1, contagemInicial); i >= 1; i--)
+        {
+            MostrarContagem(i.ToString());
+            yield return new WaitForSeconds(1f);
+        }
+
+        // Garante que o Degrais está com os valores atuais dos inputs e gera as pedras
+        AplicarValoresDosInputsNoDegrais(regenerarDepois: false);
+        tratamentoAtivo = true;
+        sessaoFinalizada = false;
+        RegenerarDegraus();
+
+        contagemRoutine = null;
+        AtualizarBotaoIniciar();
+
+        MostrarContagem(textoComecou);
+        textoFinalRoutine = StartCoroutine(ApagarContagemDepois(tempoTextoComecou));
+    }
+
+    IEnumerator ApagarContagemDepois(float segundos)
+    {
+        yield return new WaitForSeconds(segundos);
+        MostrarContagem("");
+        textoFinalRoutine = null;
+    }
+
+    void CancelarContagem()
+    {
+        if (contagemRoutine != null)
+        {
+            StopCoroutine(contagemRoutine);
+            contagemRoutine = null;
+        }
+        MostrarContagem("");
+    }
+
+    void PararTratamento()
+    {
+        tratamentoAtivo = false;
+
+        // Se o seu Degrais tiver um método para apagar/limpar as pedras,
+        // chame ele aqui. Ex.: degrais.LimparDegraus();
+    }
+
+    void MostrarContagem(string texto)
+    {
+        if (textoContagem != null) textoContagem.text = texto;
+    }
+
+    void AtualizarBotaoIniciar()
+    {
+        if (textoBotaoIniciar == null) return;
+
+        if (contagemRoutine != null)
+            textoBotaoIniciar.text = "Cancelar";
+        else if (tratamentoAtivo)
+            textoBotaoIniciar.text = "Parar Tratamento";
+        else
+            textoBotaoIniciar.text = "Iniciar Tratamento";
     }
 
     // ── Calibração ──────────────────────────────────────────
@@ -200,40 +297,54 @@ public class MenuUI_Minigame1 : MonoBehaviour
 
         if (goniometria != null)
             goniometria.IniciarCalibracaoManual();
+        else
+            Debug.LogWarning("[MenuUI] CalibrarPaciente: GoniometriaClimb não atribuída.");
     }
 
+    // Todos os campos de UI são opcionais: não dá erro se algum estiver vazio
     void AtualizarStatus()
     {
         if (goniometria.calibrando)
         {
-            statusCalibracao.text = goniometria.faseAtual;
-            statusToggle.isOn = false;
-            if (barraProgressoCalibracao != null)
-                barraProgressoCalibracao.value = goniometria.progressoCalibracao;
+            MostrarStatus(goniometria.faseAtual, false, goniometria.progressoCalibracao);
+            AtualizarBotaoCalibrar(true, false);
         }
         else if (goniometria.calibrado)
         {
-            statusCalibracao.text = $"✔ Calibrado ({goniometria.alcanceMaximo * 100f:F0} cm)";
-            statusToggle.isOn = true;
-            if (barraProgressoCalibracao != null)
-                barraProgressoCalibracao.value = 1f;
+            MostrarStatus($"✔ Calibrado ({goniometria.alcanceMaximo * 100f:F0} cm)", true, 1f);
+            AtualizarBotaoCalibrar(false, true);
         }
         else
         {
-            statusCalibracao.text = "⚠ Não calibrado";
-            statusToggle.isOn = false;
-            if (barraProgressoCalibracao != null)
-                barraProgressoCalibracao.value = 0f;
+            MostrarStatus("⚠ Não calibrado", false, 0f);
+            AtualizarBotaoCalibrar(false, false);
         }
+    }
+
+    void AtualizarBotaoCalibrar(bool calibrando, bool calibrado)
+    {
+        if (botaoCalibrar != null)
+            botaoCalibrar.interactable = !calibrando && !calibrado;
+
+        if (textoBotaoCalibrar != null)
+        {
+            if (calibrado) textoBotaoCalibrar.text = "Calibragem Concluida";
+            else if (calibrando) textoBotaoCalibrar.text = "Calibrando...";
+            else textoBotaoCalibrar.text = "clique aqui para Calibrar";
+        }
+    }
+
+    void MostrarStatus(string texto, bool ok, float progresso)
+    {
+        if (statusCalibracao != null) statusCalibracao.text = texto;
+        if (statusToggle != null) statusToggle.isOn = ok;
+        if (barraProgressoCalibracao != null) barraProgressoCalibracao.value = progresso;
     }
 
     // ── Tempo real ──────────────────────────────────────────
     void AtualizarTempoReal()
     {
-        // Não sobrescreve os textos depois que a sessão já foi finalizada —
-        // aí eles ficam travados mostrando o diagnóstico.
         if (sessaoFinalizada) return;
-
         if (!goniometria.calibrado) return;
 
         if (textoDireito != null)
@@ -251,7 +362,8 @@ public class MenuUI_Minigame1 : MonoBehaviour
 
         AtualizarTextoDificuldade();
 
-        if (goniometria != null && goniometria.calibrado)
+        // Só refaz as pedras se o tratamento já estiver rodando
+        if (tratamentoAtivo && goniometria != null && goniometria.calibrado)
             RegenerarDegraus();
     }
 
@@ -262,37 +374,18 @@ public class MenuUI_Minigame1 : MonoBehaviour
         difficultyText.text = $"Dificuldade: {porcentagem}%";
     }
 
-    public void OnLightSelected(bool selected)
-    {
-        if (selected)
-            SelecionarDificuldade(0.4f, toggleLight);
-    }
-
-    public void OnRegularSelected(bool selected)
-    {
-        if (selected)
-            SelecionarDificuldade(0.7f, toggleRegular);
-    }
-
-    public void OnHardSelected(bool selected)
-    {
-        if (selected)
-            SelecionarDificuldade(1.0f, toggleHard);
-    }
+    public void OnLightSelected(bool selected) { if (selected) SelecionarDificuldade(0.4f, toggleLight); }
+    public void OnRegularSelected(bool selected) { if (selected) SelecionarDificuldade(0.7f, toggleRegular); }
+    public void OnHardSelected(bool selected) { if (selected) SelecionarDificuldade(1.0f, toggleHard); }
 
     void SelecionarDificuldade(float valor, Toggle selecionado)
     {
         if (GameSettings.Instance != null)
             GameSettings.Instance.difficulty = valor;
 
-        if (toggleLight != null && toggleLight != selecionado)
-            toggleLight.isOn = false;
-
-        if (toggleRegular != null && toggleRegular != selecionado)
-            toggleRegular.isOn = false;
-
-        if (toggleHard != null && toggleHard != selecionado)
-            toggleHard.isOn = false;
+        if (toggleLight != null && toggleLight != selecionado) toggleLight.isOn = false;
+        if (toggleRegular != null && toggleRegular != selecionado) toggleRegular.isOn = false;
+        if (toggleHard != null && toggleHard != selecionado) toggleHard.isOn = false;
 
         if (selecionado != null)
             selecionado.isOn = true;
@@ -302,15 +395,13 @@ public class MenuUI_Minigame1 : MonoBehaviour
 
         AtualizarTextoDificuldade();
 
-        if (goniometria != null && goniometria.calibrado)
+        if (tratamentoAtivo && goniometria != null && goniometria.calibrado)
             RegenerarDegraus();
     }
-
 
     public void ToggleAdvancedDifficulty()
     {
         advancedDifficulty = !advancedDifficulty;
-
         SetAdvancedMode(advancedDifficulty);
     }
 
@@ -327,9 +418,6 @@ public class MenuUI_Minigame1 : MonoBehaviour
     }
 
     // ── Séries (Numero De Series / Pedras Por Descanso) ──────
-    // Estes dois campos são a ÚNICA fonte de verdade para o Degrais.
-    // O Inspector do Degrais só serve como fallback de emergência.
-
     void ConfigurarInputsDeSerie()
     {
         if (degrais == null)
@@ -339,34 +427,27 @@ public class MenuUI_Minigame1 : MonoBehaviour
         }
 
         if (inputNumeroDeSeries == null)
-            Debug.LogWarning("[MenuUI] 'inputNumeroDeSeries' não foi arrastado no Inspector do MenuUI_Jogo.");
+            Debug.LogWarning("[MenuUI] 'inputNumeroDeSeries' não foi arrastado no Inspector do MenuUI.");
 
         if (inputPedrasPorDescanso == null)
-            Debug.LogWarning("[MenuUI] 'inputPedrasPorDescanso' não foi arrastado no Inspector do MenuUI_Jogo.");
+            Debug.LogWarning("[MenuUI] 'inputPedrasPorDescanso' não foi arrastado no Inspector do MenuUI.");
 
-        // se os campos estiverem vazios (primeira vez que o jogo abre), preenche com o padrão
         if (inputNumeroDeSeries != null && string.IsNullOrWhiteSpace(inputNumeroDeSeries.text))
             inputNumeroDeSeries.text = padraoNumeroDeSeries.ToString();
 
         if (inputPedrasPorDescanso != null && string.IsNullOrWhiteSpace(inputPedrasPorDescanso.text))
             inputPedrasPorDescanso.text = padraoPedrasPorDescanso.ToString();
 
-        // registra os listeners para futuras edições
+        // Ao editar, só regenera se o tratamento já estiver rodando
         if (inputNumeroDeSeries != null)
-            inputNumeroDeSeries.onEndEdit.AddListener(_ => AplicarValoresDosInputsNoDegrais(regenerarDepois: true));
+            inputNumeroDeSeries.onEndEdit.AddListener(_ => AplicarValoresDosInputsNoDegrais(regenerarDepois: tratamentoAtivo));
 
         if (inputPedrasPorDescanso != null)
-            inputPedrasPorDescanso.onEndEdit.AddListener(_ => AplicarValoresDosInputsNoDegrais(regenerarDepois: true));
+            inputPedrasPorDescanso.onEndEdit.AddListener(_ => AplicarValoresDosInputsNoDegrais(regenerarDepois: tratamentoAtivo));
 
-        // aplica o valor inicial dos campos no Degrais AGORA, antes de qualquer
-        // calibração ou geração de pedras
         AplicarValoresDosInputsNoDegrais(regenerarDepois: false);
     }
 
-    /// <summary>
-    /// Lê o texto atual dos dois Input Fields, valida, e envia para Degrais.ConfigurarSeries().
-    /// Se algum campo estiver com valor inválido, ele é revertido para o último valor válido conhecido.
-    /// </summary>
     void AplicarValoresDosInputsNoDegrais(bool regenerarDepois)
     {
         if (degrais == null) return;
@@ -427,8 +508,8 @@ public class MenuUI_Minigame1 : MonoBehaviour
         if (goniometria == null) return;
 
         var r = goniometria.GetResultados();
-
         sessaoFinalizada = true;
+        tratamentoAtivo = false;
 
         if (textoDireito != null)
             textoDireito.text =
@@ -439,11 +520,6 @@ public class MenuUI_Minigame1 : MonoBehaviour
                 $"Esquerdo: {r.percEsquerdo:F1}% ({r.alcanceMaximoCM:F0}cm máx)\n{r.diagnostico}";
     }
 
-    /// <summary>
-    /// Chame isso se quiser destravar os textos e voltar a mostrar
-    /// tempo real (por exemplo, ao recalibrar ou iniciar uma nova sessão
-    /// sem trocar de cena).
-    /// </summary>
     public void ReiniciarParaNovaSessao()
     {
         sessaoFinalizada = false;
@@ -455,10 +531,10 @@ public class MenuUI_Minigame1 : MonoBehaviour
         if (GameSettings.Instance != null)
             GameSettings.Instance.usarMetadeDoAlcance = metade;
 
-        if (Degrais.Instance != null)
+        // Só refaz as pedras se o tratamento já estiver rodando
+        if (tratamentoAtivo && Degrais.Instance != null)
             Degrais.Instance.GerarDegraus();
     }
-
 
     public void botaoSair()
     {

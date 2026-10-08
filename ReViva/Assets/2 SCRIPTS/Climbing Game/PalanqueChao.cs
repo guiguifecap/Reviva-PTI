@@ -21,4 +21,11 @@ public class PalanqueChao : MonoBehaviour
             palanqueChao.SetActive(true);
         }
     }
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Player"))
+        {
+            palanqueChao.SetActive(true);
+        }
+    }
 }

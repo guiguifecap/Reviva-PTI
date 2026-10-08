@@ -28,21 +28,32 @@ public class AudioManagerMinigame1 : MonoBehaviour
     [Header("Master")]
     public TextMeshProUGUI masterVolumeText;
 
-
     private Coroutine forestCoroutine;
 
-    //private void Awake()
-    //{
-    //    if (Instance == null)
-    //    {
-    //        Instance = this;
-    //        DontDestroyOnLoad(gameObject);
-    //    }
-    //    else
-    //    {
-    //        Destroy(gameObject);
-    //    }
-    //}
+    // Reset the static when entering play mode / reloading the scene
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
+    {
+        Instance = null;
+    }
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        // Uncomment only if you want this manager to persist across scenes:
+        // DontDestroyOnLoad(gameObject);
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
 
     private void Start()
     {
@@ -57,7 +68,7 @@ public class AudioManagerMinigame1 : MonoBehaviour
     {
         while (true)
         {
-            if (forestSounds.Length > 0)
+            if (forestSource != null && forestSounds.Length > 0)
             {
                 int random = Random.Range(0, forestSounds.Length);
 
@@ -79,11 +90,20 @@ public class AudioManagerMinigame1 : MonoBehaviour
 
     public void PlayRockGrab()
     {
-        if (pedrasSounds.Length == 0)
+        if (pedrasSounds == null || pedrasSounds.Length == 0)
+        {
+            Debug.LogWarning("[AudioManager] pedrasSounds está vazio.", this);
             return;
+        }
+
+        if (pedrasSource == null)
+        {
+            Debug.LogError("[AudioManager] pedrasSource não está atribuído.", this);
+            return;
+        }
 
         int random = Random.Range(0, pedrasSounds.Length);
-
+        Debug.Log("[AudioManager] A tocar: " + pedrasSounds[random].name);
         pedrasSource.PlayOneShot(pedrasSounds[random]);
     }
 
@@ -93,7 +113,7 @@ public class AudioManagerMinigame1 : MonoBehaviour
 
     public void PlayFootstep()
     {
-        if (walkingSounds.Length == 0)
+        if (walkingSource == null || walkingSounds.Length == 0)
             return;
 
         int random = Random.Range(0, walkingSounds.Length);
@@ -128,7 +148,7 @@ public class AudioManagerMinigame1 : MonoBehaviour
 
     public void SetPedrasVolume(float value)
     {
-        audioMixer.SetFloat("pedrasVolume", value);
+        audioMixer.SetFloat("pedrasVolume", value); // must match the exposed parameter name exactly
     }
     public void UpdatePedrasVolumeText(float value)
     {
