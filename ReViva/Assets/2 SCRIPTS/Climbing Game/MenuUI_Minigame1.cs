@@ -28,7 +28,7 @@ public class MenuUI_Minigame1 : MonoBehaviour
 
     [Header("Componentes do Jogo")]
     public Degrais degrais;
-    public GoniometriaClimb goniometria;
+    public GoniometriaGenerico goniometria;
 
     [Header("Calibração")]
     public Button botaoCalibrar;
@@ -114,7 +114,7 @@ public class MenuUI_Minigame1 : MonoBehaviour
         }
 
         if (goniometria == null)
-            goniometria = FindObjectOfType<GoniometriaClimb>();
+            goniometria = FindObjectOfType<GoniometriaGenerico>();
 
         if (degrais == null)
             degrais = FindObjectOfType<Degrais>();
@@ -135,12 +135,10 @@ public class MenuUI_Minigame1 : MonoBehaviour
 
         ConfigurarInputsDeSerie();
 
-        // Agora a calibração concluída NÃO gera pedras sozinha.
-        // As pedras só nascem quando o jogador clica em "Iniciar Tratamento".
-        if (goniometria != null)
-            goniometria.OnCalibracaoConcluida += AoCalibracaoConcluida;
-        else
-            Debug.LogWarning("[MenuUI] GoniometriaClimb não encontrada na cena!");
+        // A calibração NÃO gera pedras. Elas só nascem quando o jogador
+        // clica em "Iniciar Tratamento" (veja ContagemEIniciar).
+        if (goniometria == null)
+            Debug.LogWarning("[MenuUI] GoniometriaGenerico não encontrada na cena!");
     }
 
     void Update()
@@ -170,19 +168,6 @@ public class MenuUI_Minigame1 : MonoBehaviour
     {
         PanelPause.SetActive(false);
         isPause = false;
-    }
-
-    void OnDestroy()
-    {
-        if (goniometria != null)
-            goniometria.OnCalibracaoConcluida -= AoCalibracaoConcluida;
-    }
-
-    // Se a calibração terminar com o tratamento rodando (ex.: recalibrou), refaz as pedras.
-    void AoCalibracaoConcluida()
-    {
-        if (tratamentoAtivo)
-            RegenerarDegraus();
     }
 
     // ── Iniciar / parar tratamento ──────────────────────────
@@ -235,7 +220,7 @@ public class MenuUI_Minigame1 : MonoBehaviour
             yield return new WaitForSeconds(1f);
         }
 
-        // Garante que o Degrais está com os valores atuais dos inputs e gera as pedras
+        // Único ponto onde as pedras são geradas pela primeira vez
         AplicarValoresDosInputsNoDegrais(regenerarDepois: false);
         tratamentoAtivo = true;
         sessaoFinalizada = false;
@@ -298,7 +283,7 @@ public class MenuUI_Minigame1 : MonoBehaviour
         if (goniometria != null)
             goniometria.IniciarCalibracaoManual();
         else
-            Debug.LogWarning("[MenuUI] CalibrarPaciente: GoniometriaClimb não atribuída.");
+            Debug.LogWarning("[MenuUI] CalibrarPaciente: GoniometriaGenerico não atribuída.");
     }
 
     // Todos os campos de UI são opcionais: não dá erro se algum estiver vazio
@@ -342,17 +327,17 @@ public class MenuUI_Minigame1 : MonoBehaviour
     }
 
     // ── Tempo real ──────────────────────────────────────────
-    void AtualizarTempoReal()
-    {
-        if (sessaoFinalizada) return;
-        if (!goniometria.calibrado) return;
+void AtualizarTempoReal()
+{
+    if (sessaoFinalizada) return;
+    if (!goniometria.calibrado) return;
 
-        if (textoDireito != null)
-            textoDireito.text = $"Dir: {goniometria.GetUsoAtualDir():F0}%";
+    if (textoDireito != null)
+        textoDireito.text = $"{goniometria.GetGrausAtualDir():F0}°";
 
-        if (textoEsquerdo != null)
-            textoEsquerdo.text = $"Esq: {goniometria.GetUsoAtualEsq():F0}%";
-    }
+    if (textoEsquerdo != null)
+        textoEsquerdo.text = $"{goniometria.GetGrausAtualEsq():F0}°";
+}
 
     // ── Dificuldade ─────────────────────────────────────────
     public void OnSliderChanged(float value)
@@ -502,22 +487,20 @@ public class MenuUI_Minigame1 : MonoBehaviour
         degrais.GerarDegraus();
     }
 
-    // ── Resultados ──────────────────────────────────────────
+    // Mostra o máximo recorrente de cada braço, em graus
     public void FinalizarSessao()
     {
         if (goniometria == null) return;
 
         var r = goniometria.GetResultados();
         sessaoFinalizada = true;
-        tratamentoAtivo = false;
+        tratamentoAtivo = false; // só no Minigame1; no Minigame2 apague esta linha
 
         if (textoDireito != null)
-            textoDireito.text =
-                $"Direito: {r.percDireito:F1}% ({r.alcanceMaximoCM:F0}cm máx)\n{r.diagnostico}";
+            textoDireito.text = $"{r.grausDireito:F0}°";
 
         if (textoEsquerdo != null)
-            textoEsquerdo.text =
-                $"Esquerdo: {r.percEsquerdo:F1}% ({r.alcanceMaximoCM:F0}cm máx)\n{r.diagnostico}";
+            textoEsquerdo.text = $"{r.grausEsquerdo:F0}°";
     }
 
     public void ReiniciarParaNovaSessao()

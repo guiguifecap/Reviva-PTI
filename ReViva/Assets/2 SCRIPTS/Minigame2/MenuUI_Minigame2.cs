@@ -87,6 +87,7 @@ public class MenuUI_Minigame2 : MonoBehaviour
     public TextMeshProUGUI textoDireito;
     public TextMeshProUGUI textoEsquerdo;
     private bool sessaoFinalizada = false;
+    private bool tratamentoIniciouNoSpawner = false; // detecta quando o jogador vence
 
     [Header("Cenas")]
     public string cenaMenu = "Menu";
@@ -179,6 +180,13 @@ public class MenuUI_Minigame2 : MonoBehaviour
         AtualizarBotaoIniciar();
         AtualizarTextoAcertos();
 
+        // Jogador venceu: o spawner parou sozinho -> mostra o máximo recorrente
+        if (tratamentoIniciouNoSpawner && targetSpawner != null && !targetSpawner.HasStarted)
+        {
+            tratamentoIniciouNoSpawner = false;
+            FinalizarSessao();
+        }
+
         if (goniometria == null) return;
         AtualizarStatus();
         AtualizarTempoReal();
@@ -220,6 +228,7 @@ public class MenuUI_Minigame2 : MonoBehaviour
         else if (targetSpawner.HasStarted)
         {
             targetSpawner.StopTreatment();
+            FinalizarSessao(); // mostra o máximo recorrente
         }
         else
         {
@@ -240,7 +249,10 @@ public class MenuUI_Minigame2 : MonoBehaviour
 
         // Garante que o spawner está com os valores atuais e libera os alvos
         AplicarNoSpawner();
+        sessaoFinalizada = false;
+        if (goniometria != null) goniometria.ResetarSessao();
         targetSpawner.StartTreatment();
+        tratamentoIniciouNoSpawner = true;
         contagemRoutine = null;
         AtualizarBotaoIniciar();
 
@@ -351,10 +363,10 @@ public class MenuUI_Minigame2 : MonoBehaviour
         if (!goniometria.calibrado) return;
 
         if (textoDireito != null)
-            textoDireito.text = $"Dir: {goniometria.GetUsoAtualDir():F0}%";
+            textoDireito.text = $"{goniometria.GetGrausAtualDir():F0}°";
 
         if (textoEsquerdo != null)
-            textoEsquerdo.text = $"Esq: {goniometria.GetUsoAtualEsq():F0}%";
+            textoEsquerdo.text = $"{goniometria.GetGrausAtualEsq():F0}°";
     }
 
     // ── Dificuldade: presets (modo normal) ──────────────────
@@ -509,20 +521,20 @@ public class MenuUI_Minigame2 : MonoBehaviour
     }
 
     // ── Resultados ──────────────────────────────────────────
+    // Mostra o máximo recorrente de cada braço, em graus (sem texto, igual ao Minigame1)
     public void FinalizarSessao()
     {
         if (goniometria == null) return;
 
         var r = goniometria.GetResultados();
         sessaoFinalizada = true;
+        tratamentoIniciouNoSpawner = false;
 
         if (textoDireito != null)
-            textoDireito.text =
-                $"Direito: {r.percDireito:F1}% ({r.alcanceMaximoCM:F0}cm máx)\n{r.diagnostico}";
+            textoDireito.text = $"{r.grausDireito:F0}°";
 
         if (textoEsquerdo != null)
-            textoEsquerdo.text =
-                $"Esquerdo: {r.percEsquerdo:F1}% ({r.alcanceMaximoCM:F0}cm máx)\n{r.diagnostico}";
+            textoEsquerdo.text = $"{r.grausEsquerdo:F0}°";
     }
 
     public void ReiniciarParaNovaSessao()
@@ -538,7 +550,6 @@ public class MenuUI_Minigame2 : MonoBehaviour
     {
         if (GameSettings.Instance != null)
             GameSettings.Instance.usarMetadeDoAlcance = metade;
-
     }
 
     public void botaoSair()

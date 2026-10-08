@@ -1,10 +1,12 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 /// <summary>
-/// Calibração e medição de alcance dos braços. Só faz isso:
+/// Calibração e medição dos braços:
 ///  1) calibra (braços relaxados -> levantar o máximo possível)
-///  2) mede o uso atual de cada braço em % do alcance calibrado
-///  3) guarda o pico da sessão para o resultado final
+///  2) mede o ÂNGULO de cada braço em graus (0° = relaxado, 180° = esticado para cima)
+///  3) registra o pico de cada repetição e calcula o MÁXIMO RECORRENTE em graus
+///     (valor que o paciente consegue repetir, ignorando picos isolados)
 ///
 /// A posição da mão é medida em relação à cabeça, então andar pelo cenário
 /// não muda o resultado.
@@ -34,6 +36,21 @@ public class GoniometriaGenerico : MonoBehaviour
     [Tooltip("Suavização do valor em tempo real (maior = reage mais rápido, 0 = sem suavização).")]
     public float suavizacao = 10f;
 
+    [Header("Ângulo do Ombro")]
+    [Tooltip("Distância (m) entre os dois ombros. Cada ombro fica a metade disso para o lado da cabeça.")]
+    public float larguraOmbros = 0.36f;
+    [Tooltip("Distância (m) da cabeça (headset) até a linha dos ombros, para baixo.")]
+    public float alturaOmbros = 0.20f;
+
+    [Header("Máximo Recorrente (em graus)")]
+    [Tooltip("Ângulo (°) que o braço precisa passar para começar a contar uma repetição.")]
+    [Range(5f, 90f)] public float limiarInicioRepeticao = 30f;
+    [Tooltip("Ângulo (°) abaixo do qual a repetição termina (deve ser menor que o limiar de início).")]
+    [Range(1f, 85f)] public float limiarFimRepeticao = 20f;
+    [Tooltip("Quantas repetições precisam ter atingido o valor para ele valer como 'recorrente'. " +
+             "2 = ignora um pico isolado. 3 = mais rigoroso.")]
+    [Min(1)] public int repeticoesMinimas = 2;
+
     [Header("Estado")]
     public bool calibrando = false;
     public bool calibrado = false;
@@ -61,10 +78,21 @@ public class GoniometriaGenerico : MonoBehaviour
     private float maxRight = 0f;
     private float maxLeft = 0f;
 
+    // Uso em % (mantido para quem ainda precisar) e ângulo em graus
     private float usoDir = 0f;
     private float usoEsq = 0f;
-    private float picoDir = 0f;
-    private float picoEsq = 0f;
+    private float grausDir = 0f;
+    private float grausEsq = 0f;
+    private float picoGrausDir = 0f;   // pico absoluto (só usado como fallback)
+    private float picoGrausEsq = 0f;
+
+    // Repetições (em graus)
+    private readonly List<float> picosRepDir = new List<float>();
+    private readonly List<float> picosRepEsq = new List<float>();
+    private bool emRepDir = false;
+    private bool emRepEsq = false;
+    private float picoRepAtualDir = 0f;
+    private float picoRepAtualEsq = 0f;
 
     void Update()
     {
@@ -101,6 +129,10 @@ public class GoniometriaGenerico : MonoBehaviour
     {
         return head != null && handRight != null && handLeft != null;
     }
+
+    // Posição estimada de cada ombro no referencial da cabeça
+    Vector3 OmbroDireito => new Vector3(larguraOmbros * 0.5f, -alturaOmbros, 0f);
+    Vector3 OmbroEsquerdo => new Vector3(-larguraOmbros * 0.5f, -alturaOmbros, 0f);
 
     // ─────────────────────────────────────────────
     // Calibração
@@ -231,18 +263,75 @@ public class GoniometriaGenerico : MonoBehaviour
     {
         if (!ReferenciasOk() || alcanceMaximo <= 0f) return;
 
-        alcanceAtualDir = Vector3.Distance(relaxRight, NoReferencialDaCabeca(handRight.position));
-        alcanceAtualEsq = Vector3.Distance(relaxLeft, NoReferencialDaCabeca(handLeft.position));
+        Vector3 maoDir = NoReferencialDaCabeca(handRight.position);
+        Vector3 maoEsq = NoReferencialDaCabeca(handLeft.position);
+
+        // Distância (usada pelo jogo e pelo % de uso)
+        alcanceAtualDir = Vector3.Distance(relaxRight, maoDir);
+        alcanceAtualEsq = Vector3.Distance(relaxLeft, maoEsq);
 
         float alvoDir = Mathf.Clamp01(alcanceAtualDir / alcanceMaximo) * 100f;
         float alvoEsq = Mathf.Clamp01(alcanceAtualEsq / alcanceMaximo) * 100f;
 
+        // Ângulo do ombro: direção de repouso (0°) contra a direção atual ombro -> mão
+        Vector3 ombroD = OmbroDireito;
+        Vector3 ombroE = OmbroEsquerdo;
+        float alvoGrauDir = Mathf.Clamp(Vector3.Angle(relaxRight - ombroD, maoDir - ombroD), 0f, 180f);
+        float alvoGrauEsq = Mathf.Clamp(Vector3.Angle(relaxLeft - ombroE, maoEsq - ombroE), 0f, 180f);
+
         float k = suavizacao > 0f ? 1f - Mathf.Exp(-suavizacao * Time.deltaTime) : 1f;
         usoDir = Mathf.Lerp(usoDir, alvoDir, k);
         usoEsq = Mathf.Lerp(usoEsq, alvoEsq, k);
+        grausDir = Mathf.Lerp(grausDir, alvoGrauDir, k);
+        grausEsq = Mathf.Lerp(grausEsq, alvoGrauEsq, k);
 
-        if (usoDir > picoDir) picoDir = usoDir;
-        if (usoEsq > picoEsq) picoEsq = usoEsq;
+        if (grausDir > picoGrausDir) picoGrausDir = grausDir;
+        if (grausEsq > picoGrausEsq) picoGrausEsq = grausEsq;
+
+        RegistrarRepeticao(grausDir, ref emRepDir, ref picoRepAtualDir, picosRepDir);
+        RegistrarRepeticao(grausEsq, ref emRepEsq, ref picoRepAtualEsq, picosRepEsq);
+    }
+
+    /// <summary>
+    /// Detecta repetições com histerese: começa ao passar do limiar de início,
+    /// termina ao cair abaixo do limiar de fim, e guarda o pico (em graus) daquela repetição.
+    /// </summary>
+    void RegistrarRepeticao(float graus, ref bool emRep, ref float picoRep, List<float> lista)
+    {
+        float inicio = limiarInicioRepeticao;
+        float fim = Mathf.Min(limiarFimRepeticao, inicio - 1f);
+
+        if (!emRep)
+        {
+            if (graus >= inicio)
+            {
+                emRep = true;
+                picoRep = graus;
+            }
+        }
+        else
+        {
+            if (graus > picoRep) picoRep = graus;
+
+            if (graus <= fim)
+            {
+                lista.Add(picoRep);
+                emRep = false;
+                picoRep = 0f;
+            }
+        }
+    }
+
+    /// <summary>Ângulo atual do braço direito (0° relaxado, 180° esticado para cima).</summary>
+    public float GetGrausAtualDir()
+    {
+        return calibrado ? grausDir : 0f;
+    }
+
+    /// <summary>Ângulo atual do braço esquerdo (0° relaxado, 180° esticado para cima).</summary>
+    public float GetGrausAtualEsq()
+    {
+        return calibrado ? grausEsq : 0f;
     }
 
     public float GetUsoAtualDir()
@@ -255,36 +344,67 @@ public class GoniometriaGenerico : MonoBehaviour
         return calibrado ? usoEsq : 0f;
     }
 
-    /// <summary>Zera os picos da sessão (chamado ao calibrar e ao reiniciar a sessão).</summary>
+    /// <summary>Zera os dados da sessão (chamado ao calibrar e ao reiniciar a sessão).</summary>
     public void ResetarSessao()
     {
         usoDir = 0f;
         usoEsq = 0f;
-        picoDir = 0f;
-        picoEsq = 0f;
+        grausDir = 0f;
+        grausEsq = 0f;
+        picoGrausDir = 0f;
+        picoGrausEsq = 0f;
+
+        picosRepDir.Clear();
+        picosRepEsq.Clear();
+        emRepDir = false;
+        emRepEsq = false;
+        picoRepAtualDir = 0f;
+        picoRepAtualEsq = 0f;
     }
 
     // ─────────────────────────────────────────────
-    // Resultados (pico de uso de cada braço na sessão)
+    // Resultados (máximo recorrente de cada braço, em graus)
     // ─────────────────────────────────────────────
     public struct ResultadoSessao
     {
-        public float percDireito;
-        public float percEsquerdo;
+        public float grausDireito;
+        public float grausEsquerdo;
         public float alcanceMaximoCM;
         public string diagnostico;
     }
 
     public ResultadoSessao GetResultados()
     {
-        ResultadoSessao r;
+        // Fecha a repetição que ainda estiver em andamento
+        var dir = new List<float>(picosRepDir);
+        var esq = new List<float>(picosRepEsq);
+        if (emRepDir) dir.Add(picoRepAtualDir);
+        if (emRepEsq) esq.Add(picoRepAtualEsq);
 
-        r.percDireito = picoDir;
-        r.percEsquerdo = picoEsq;
+        ResultadoSessao r;
+        r.grausDireito = MaximoRecorrente(dir, picoGrausDir);
+        r.grausEsquerdo = MaximoRecorrente(esq, picoGrausEsq);
         r.alcanceMaximoCM = alcanceMaximo * 100f;
-        r.diagnostico = GerarDiagnostico(r.percDireito, r.percEsquerdo);
+        r.diagnostico = GerarDiagnostico(r.grausDireito, r.grausEsquerdo);
 
         return r;
+    }
+
+    /// <summary>
+    /// Maior ângulo que foi atingido (ou superado) em pelo menos 'repeticoesMinimas' repetições.
+    /// Ex.: picos 150°, 141°, 140°, 140°, 139° com mínimo 2 -> 141°. O 150° isolado é ignorado.
+    /// Se houve menos repetições que o mínimo, usa a de menor pico entre as que existem
+    /// (ou o pico absoluto, se nenhuma repetição foi detectada).
+    /// </summary>
+    float MaximoRecorrente(List<float> picos, float fallbackPicoAbsoluto)
+    {
+        if (picos.Count == 0)
+            return fallbackPicoAbsoluto;
+
+        picos.Sort((a, b) => b.CompareTo(a)); // decrescente
+
+        int indice = Mathf.Min(Mathf.Max(1, repeticoesMinimas), picos.Count) - 1;
+        return picos[indice];
     }
 
     string GerarDiagnostico(float dir, float esq)
@@ -297,7 +417,7 @@ public class GoniometriaGenerico : MonoBehaviour
             return $"⚠ Assimetria funcional — lado {ladoFraco}";
         }
 
-        if (dir < 70f || esq < 70f)
+        if (dir < 150f || esq < 150f)
             return "⚠ Amplitude abaixo do ideal clínico";
 
         return "✔ Movimento dentro do esperado";

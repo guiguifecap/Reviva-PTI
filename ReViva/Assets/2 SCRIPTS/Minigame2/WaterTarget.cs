@@ -6,6 +6,7 @@ using UnityEngine.Events;
 /// The spawner calls Init() to activate it, and this script tells the
 /// spawner when it's done (via ReturnTarget) so a new one can spawn.
 /// Breaks when hit by any object tagged with ballTag ("Bola").
+/// Shows a floating "+1" when hit.
 /// </summary>
 public class WaterTarget : MonoBehaviour
 {
@@ -36,6 +37,18 @@ public class WaterTarget : MonoBehaviour
     [SerializeField] private Vector2 shardSpeedRange = new Vector2(1.5f, 4f);
     [SerializeField] private float shardLifetime = 2.5f;
     [SerializeField] private AudioClip breakSound;
+
+    [Header("Score Popup (+1)")]
+    [SerializeField] private bool showScorePopup = true;
+    [SerializeField] private string scoreText = "+1";
+    [SerializeField] private Color scoreColor = new Color(1f, 0.9f, 0.2f);
+    [Tooltip("Tamanho da fonte (3 a 6 costuma ficar bom no mundo VR)")]
+    [SerializeField] private float scoreFontSize = 4f;
+    [Tooltip("Altura (m) acima do topo do alvo onde o texto aparece")]
+    [SerializeField] private float scoreHeightOffset = 0.25f;
+    [Tooltip("Quantos metros o texto sobe")]
+    [SerializeField] private float scoreRise = 0.8f;
+    [SerializeField] private float scoreDuration = 1.2f;
 
     private enum State { Rising, Staying, Sinking }
 
@@ -147,6 +160,9 @@ public class WaterTarget : MonoBehaviour
 
         onHit?.Invoke();
         if (spawner != null) spawner.RegisterHit();
+
+        ShowScorePopup();
+
         StartCoroutine(HitReaction());
     }
 
@@ -155,6 +171,20 @@ public class WaterTarget : MonoBehaviour
     private void OnMouseDown()
     {
         Hit();
+    }
+
+    // ---------------------------------------------------------------------
+    // Score popup
+    // ---------------------------------------------------------------------
+
+    private void ShowScorePopup()
+    {
+        if (!showScorePopup) return;
+
+        Bounds b = GetVisualBounds();
+        Vector3 pos = new Vector3(b.center.x, b.max.y + scoreHeightOffset, b.center.z);
+
+        FloatingText.Spawn(pos, scoreText, scoreColor, scoreFontSize, scoreRise, scoreDuration);
     }
 
     // ---------------------------------------------------------------------

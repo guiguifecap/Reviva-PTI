@@ -15089,14 +15089,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.003921569}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: d4d1909d58e86cb4d867bc335209f626, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -36439,9 +36439,9 @@ GameObject:
   - component: {fileID: 1751652814}
   - component: {fileID: 1751652809}
   - component: {fileID: 1751652807}
-  - component: {fileID: 1751652808}
   - component: {fileID: 1751652812}
-  - component: {fileID: 1751652813}
+  - component: {fileID: 1751652816}
+  - component: {fileID: 1751652815}
   m_Layer: 0
   m_Name: GM GameManager
   m_TagString: Untagged
@@ -36473,7 +36473,7 @@ MonoBehaviour:
   padraoNumeroDeSeries: 3
   padraoPedrasPorDescanso: 5
   degrais: {fileID: 1751652809}
-  goniometria: {fileID: 1751652808}
+  goniometria: {fileID: 1751652815}
   botaoCalibrar: {fileID: 752839407}
   textoBotaoCalibrar: {fileID: 308691917}
   statusCalibracao: {fileID: 1005031205}
@@ -36493,28 +36493,6 @@ MonoBehaviour:
   toggleMetadeAlcance: {fileID: 1248164009}
   PanelPause: {fileID: 1717145793}
   isPause: 0
---- !u!114 &1751652808
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1751652806}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3fb96cf5e91b1734d917d3ff41ec6635, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  head: {fileID: 75470470}
-  handRight: {fileID: 1548915912}
-  handLeft: {fileID: 906155026}
-  tempoRelaxado: 5
-  tempoMaximo: 5
-  calibrando: 0
-  calibrado: 0
-  progressoCalibracao: 0
-  faseAtual: 
-  alcanceMaximo: 0
 --- !u!114 &1751652809
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -36588,25 +36566,6 @@ MonoBehaviour:
   timerText: {fileID: 1101797901}
   isRunning: 0
   finished: 0
---- !u!114 &1751652813
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1751652806}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 37b3c52aed0af774c8099a5c1ec84439, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  goniometria: {fileID: 1751652808}
-  degrais: {fileID: 1751652809}
-  painel: {fileID: 462915996}
-  imagemFundo: {fileID: 2052175177}
-  textoStatus: {fileID: 1888616607}
-  cameraEspelhoMedico: {fileID: 1037710396}
-  gerarPedrasAoTerminarCalibracao: 1
 --- !u!114 &1751652814
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -36622,6 +36581,53 @@ MonoBehaviour:
   difficulty: 0
   alcanceMaximoCM: 150
   usarMetadeDoAlcance: 0
+--- !u!114 &1751652815
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1751652806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ede2f462db59a3e478d0c8c1d0baff25, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GoniometriaGenerico
+  head: {fileID: 75470470}
+  handRight: {fileID: 1548915912}
+  handLeft: {fileID: 906155026}
+  tempoRelaxado: 2
+  tempoMaximo: 3
+  ajusteClinico: 0.05
+  alcanceMinimoValido: 0.2
+  usarSomenteGiroDaCabeca: 1
+  suavizacao: 10
+  larguraOmbros: 0.36
+  alturaOmbros: 0.2
+  limiarInicioRepeticao: 30
+  limiarFimRepeticao: 20
+  repeticoesMinimas: 2
+  calibrando: 0
+  calibrado: 0
+  progressoCalibracao: 0
+  faseAtual: 
+  alcanceMaximo: 0
+--- !u!114 &1751652816
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1751652806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a305668873748ea4bb9c5875daef6884, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TelaCalibragemGenerico
+  goniometria: {fileID: 1751652815}
+  painel: {fileID: 462915996}
+  textoStatus: {fileID: 1888616607}
+  barraProgresso: {fileID: 0}
 --- !u!4 &1759697368 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 780fae832bc6a4e448c82065fda71a07, type: 3}
