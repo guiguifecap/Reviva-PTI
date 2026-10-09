@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
+using UnityEngine.XR.Interaction.Toolkit.Locomotion;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Climbing;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Movement;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Turning;
@@ -20,6 +21,7 @@ public class AudioPedras : MonoBehaviour
     private static ContinuousMoveProvider[] moveProviders;
     private static ContinuousTurnProvider[] continuousTurnProviders;
     private static SnapTurnProvider[] snapTurnProviders;
+    private static LocomotionProvider[] providers;
 
     private void Awake()
     {
@@ -64,6 +66,10 @@ public class AudioPedras : MonoBehaviour
         isGrabbed = true;
         grabCount++;
         //if (grabCount == 1) SetLocomotionEnabled(false);
+
+
+        if (Timer.Instance != null)
+            Timer.Instance.StartTimer();
     }
 
     private void OnRelease(SelectExitEventArgs args)
@@ -77,17 +83,20 @@ public class AudioPedras : MonoBehaviour
 
     private static void SetLocomotionEnabled(bool value)
     {
-        // Find the providers once and cache them
-        if (moveProviders == null || moveProviders.Length == 0)
-            moveProviders = FindObjectsByType<ContinuousMoveProvider>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        if (continuousTurnProviders == null || continuousTurnProviders.Length == 0)
-            continuousTurnProviders = FindObjectsByType<ContinuousTurnProvider>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        if (snapTurnProviders == null || snapTurnProviders.Length == 0)
-            snapTurnProviders = FindObjectsByType<SnapTurnProvider>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        if (providers == null || providers.Length == 0)
+            providers = FindObjectsByType<LocomotionProvider>(FindObjectsInactive.Include, FindObjectsSortMode.None);
 
-        foreach (var p in moveProviders) if (p != null) p.enabled = value;
-        foreach (var p in continuousTurnProviders) if (p != null) p.enabled = value;
-        foreach (var p in snapTurnProviders) if (p != null) p.enabled = value;
+        int count = 0;
+        foreach (var p in providers)
+        {
+            if (p == null || p is ClimbProvider) continue; // never disable climbing itself
+            p.enabled = value;
+            count++;
+            Debug.Log($"[AudioPedras] {(value ? "ENABLED" : "DISABLED")} {p.GetType().Name} on {p.name}");
+        }
+
+        if (count == 0)
+            Debug.LogWarning("[AudioPedras] No locomotion providers found to toggle!");
     }
 
     // Reset static state when entering play mode / reloading the scene

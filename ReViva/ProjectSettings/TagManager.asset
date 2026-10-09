@@ -10,6 +10,7 @@ TagManager:
   - Mao
   - Alvo
   - Bola
+  - Casa
   layers:
   - Default
   - TransparentFX
