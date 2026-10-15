@@ -40,18 +40,15 @@ public class MenuUI_Minigame1 : MonoBehaviour
     [Header("Iniciar Tratamento")]
     public Button botaoIniciarTratamento;
     public TextMeshProUGUI textoBotaoIniciar;
-    [Tooltip("Texto onde aparece a contagem regressiva (3, 2, 1...). Fica vazio quando não está contando.")]
+    [Tooltip("Texto onde aparece o aviso de início. Fica vazio quando não está mostrando nada.")]
     public TextMeshProUGUI textoContagem;
-    [Tooltip("Quantos segundos de contagem depois de clicar em Iniciar.")]
-    public int contagemInicial = 3;
-    [Tooltip("Texto mostrado quando a contagem termina e as pedras aparecem.")]
+    [Tooltip("Texto mostrado quando as pedras aparecem.")]
     public string textoComecou = "JÁ!";
     [Tooltip("Por quantos segundos o texto acima fica na tela.")]
     public float tempoTextoComecou = 0.7f;
     [Tooltip("Se ligado, só deixa iniciar o tratamento depois de calibrar.")]
     public bool exigirCalibracaoParaIniciar = true;
 
-    private Coroutine contagemRoutine;
     private Coroutine textoFinalRoutine;
     // true = pedras já foram geradas (tratamento rodando)
     private bool tratamentoAtivo = false;
@@ -185,12 +182,7 @@ public class MenuUI_Minigame1 : MonoBehaviour
             return;
         }
 
-        if (contagemRoutine != null)
-        {
-            // Clicou durante a contagem: cancela
-            CancelarContagem();
-        }
-        else if (tratamentoAtivo)
+        if (tratamentoAtivo)
         {
             PararTratamento();
         }
@@ -205,29 +197,21 @@ public class MenuUI_Minigame1 : MonoBehaviour
                 return;
             }
 
-            if (textoFinalRoutine != null) { StopCoroutine(textoFinalRoutine); textoFinalRoutine = null; }
-            contagemRoutine = StartCoroutine(ContagemEIniciar());
+            IniciarAgora();
         }
 
         AtualizarBotaoIniciar();
     }
 
-    IEnumerator ContagemEIniciar()
+    void IniciarAgora()
     {
-        for (int i = Mathf.Max(1, contagemInicial); i >= 1; i--)
-        {
-            MostrarContagem(i.ToString());
-            yield return new WaitForSeconds(1f);
-        }
+        if (textoFinalRoutine != null) { StopCoroutine(textoFinalRoutine); textoFinalRoutine = null; }
 
         // Único ponto onde as pedras são geradas pela primeira vez
         AplicarValoresDosInputsNoDegrais(regenerarDepois: false);
         tratamentoAtivo = true;
         sessaoFinalizada = false;
         RegenerarDegraus();
-
-        contagemRoutine = null;
-        AtualizarBotaoIniciar();
 
         MostrarContagem(textoComecou);
         textoFinalRoutine = StartCoroutine(ApagarContagemDepois(tempoTextoComecou));
@@ -238,16 +222,6 @@ public class MenuUI_Minigame1 : MonoBehaviour
         yield return new WaitForSeconds(segundos);
         MostrarContagem("");
         textoFinalRoutine = null;
-    }
-
-    void CancelarContagem()
-    {
-        if (contagemRoutine != null)
-        {
-            StopCoroutine(contagemRoutine);
-            contagemRoutine = null;
-        }
-        MostrarContagem("");
     }
 
     void PararTratamento()
@@ -267,12 +241,7 @@ public class MenuUI_Minigame1 : MonoBehaviour
     {
         if (textoBotaoIniciar == null) return;
 
-        if (contagemRoutine != null)
-            textoBotaoIniciar.text = "Cancelar";
-        else if (tratamentoAtivo)
-            textoBotaoIniciar.text = "Parar Tratamento";
-        else
-            textoBotaoIniciar.text = "Iniciar Tratamento";
+        textoBotaoIniciar.text = tratamentoAtivo ? "Parar Tratamento" : "Iniciar Tratamento";
     }
 
     // ── Calibração ──────────────────────────────────────────

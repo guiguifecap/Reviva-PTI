@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
@@ -23,9 +24,27 @@ public class AudioPedras : MonoBehaviour
     private static SnapTurnProvider[] snapTurnProviders;
     private static LocomotionProvider[] providers;
 
+
+
+    [Header("Tutorial Highlight")]
+    [SerializeField] private float pulseSpeed = 4f;
+
+    private Outline[] outlines;
+    private static bool firstGrabDone = false;
+    private static List<Outline> allOutlines = new List<Outline>(); // outlines of ALL rocks
+
     private void Awake()
     {
         climbInteractable = GetComponent<ClimbInteractable>();
+        outlines = GetComponentsInChildren<Outline>(true);
+        allOutlines.AddRange(outlines);
+    }
+
+    private void Update()
+    {
+        if (firstGrabDone) return;
+        foreach (var o in outlines)
+            if (o != null) o.OutlineWidth = 4f + Mathf.Sin(Time.time * pulseSpeed) * 1.5f;
     }
 
     private void OnEnable()
@@ -50,6 +69,13 @@ public class AudioPedras : MonoBehaviour
 
     private void OnClimb(SelectEnterEventArgs args)
     {
+        if (!firstGrabDone)
+        {
+            firstGrabDone = true;
+            HideAllOutlines();
+        }
+
+
         Debug.Log("[AudioPedras] OnClimb disparou em: " + name, this);
 
         if (AudioManagerMinigame1.Instance == null)
@@ -107,5 +133,20 @@ public class AudioPedras : MonoBehaviour
         moveProviders = null;
         continuousTurnProviders = null;
         snapTurnProviders = null;
+
+        firstGrabDone = false;
+        allOutlines.Clear();
+    }
+
+
+    private static void HideAllOutlines()
+    {
+        foreach (var o in allOutlines)
+        {
+            if (o == null) continue;
+            Color c = o.OutlineColor;
+            c.a = 0f;                 // fully transparent, component stays enabled
+            o.OutlineColor = c;
+        }
     }
 }
