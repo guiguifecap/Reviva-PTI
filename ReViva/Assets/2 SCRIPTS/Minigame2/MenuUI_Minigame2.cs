@@ -7,6 +7,14 @@ using UnityEngine.UI;
 
 public class MenuUI_Minigame2 : MonoBehaviour
 {
+
+
+    [Header("Vitória (Fogos)")]
+    [Tooltip("Por quantos segundos os fogos ficam ativos (0 = ficam até iniciar outro tratamento).")]
+    public float duracaoFogos = 5f;
+    public GameObject fogos;
+    private Coroutine fogosRoutine;
+
     [Header("Dificuldade (modo normal)")]
     public Toggle toggleLight;
     public Toggle toggleRegular;
@@ -115,6 +123,9 @@ public class MenuUI_Minigame2 : MonoBehaviour
 
     void Start()
     {
+        // Fogos começam desligados
+        if (fogos != null) fogos.SetActive(false);
+
         if (toggleMetadeAlcance != null)
             toggleMetadeAlcance.onValueChanged.AddListener(OnToggleAlcance);
 
@@ -180,10 +191,15 @@ public class MenuUI_Minigame2 : MonoBehaviour
         AtualizarBotaoIniciar();
         AtualizarTextoAcertos();
 
-        // Jogador venceu: o spawner parou sozinho -> mostra o máximo recorrente
+        // Jogador venceu: o spawner parou sozinho -> comemora e mostra o máximo recorrente
         if (tratamentoIniciouNoSpawner && targetSpawner != null && !targetSpawner.HasStarted)
         {
             tratamentoIniciouNoSpawner = false;
+
+            // Só comemora se realmente acertou todos os alvos (e não se clicou em "Parar")
+            if (targetSpawner.HitsSoFar >= targetSpawner.HitsToWin)
+                Comemorar();
+
             FinalizarSessao();
         }
 
@@ -250,6 +266,7 @@ public class MenuUI_Minigame2 : MonoBehaviour
         // Garante que o spawner está com os valores atuais e libera os alvos
         AplicarNoSpawner();
         sessaoFinalizada = false;
+        EsconderFogos();
         if (goniometria != null) goniometria.ResetarSessao();
         targetSpawner.StartTreatment();
         tratamentoIniciouNoSpawner = true;
@@ -293,6 +310,40 @@ public class MenuUI_Minigame2 : MonoBehaviour
             textoBotaoIniciar.text = "Parar Tratamento";
         else
             textoBotaoIniciar.text = "Iniciar Tratamento";
+    }
+
+    // ── Vitória: fogos + áudio (o som fica no AudioManager) ──
+    void Comemorar()
+    {
+        if (fogos != null)
+        {
+            fogos.SetActive(false); // reinicia o efeito caso já estivesse ativo
+            fogos.SetActive(true);
+
+            if (fogosRoutine != null) StopCoroutine(fogosRoutine);
+            if (duracaoFogos > 0f)
+                fogosRoutine = StartCoroutine(DesativarFogosDepois(duracaoFogos));
+        }
+
+        if (AudioManagerMinigame2.Instance != null)
+            AudioManagerMinigame2.Instance.PlayVitoria();
+    }
+
+    IEnumerator DesativarFogosDepois(float segundos)
+    {
+        yield return new WaitForSeconds(segundos);
+        if (fogos != null) fogos.SetActive(false);
+        fogosRoutine = null;
+    }
+
+    void EsconderFogos()
+    {
+        if (fogosRoutine != null)
+        {
+            StopCoroutine(fogosRoutine);
+            fogosRoutine = null;
+        }
+        if (fogos != null) fogos.SetActive(false);
     }
 
     // ── Acertos ─────────────────────────────────────────────

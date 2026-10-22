@@ -7,6 +7,7 @@ using UnityEngine.Events;
 /// spawner when it's done (via ReturnTarget) so a new one can spawn.
 /// Breaks when hit by any object tagged with ballTag ("Bola").
 /// Shows a floating "+1" when hit.
+/// The break sound is played through AudioManagerMinigame2.
 /// </summary>
 public class WaterTarget : MonoBehaviour
 {
@@ -36,7 +37,6 @@ public class WaterTarget : MonoBehaviour
     [Tooltip("Speed (m/s) the shards fly away with")]
     [SerializeField] private Vector2 shardSpeedRange = new Vector2(1.5f, 4f);
     [SerializeField] private float shardLifetime = 2.5f;
-    [SerializeField] private AudioClip breakSound;
 
     [Header("Score Popup (+1)")]
     [SerializeField] private bool showScorePopup = true;
@@ -267,8 +267,9 @@ public class WaterTarget : MonoBehaviour
         if (spawnShards)
             SpawnShards(origin);
 
-        if (breakSound != null)
-            AudioSource.PlayClipAtPoint(breakSound, startPos);
+        // Som toca junto com a animação de destruir (o AudioManager cuida de tudo)
+        if (AudioManagerMinigame2.Instance != null)
+            AudioManagerMinigame2.Instance.PlayAlvoBreak(startPos);
 
         if (hitEffectPrefab != null)
         {

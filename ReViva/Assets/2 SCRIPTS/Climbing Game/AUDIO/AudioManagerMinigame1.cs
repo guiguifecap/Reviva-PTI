@@ -25,6 +25,11 @@ public class AudioManagerMinigame1 : MonoBehaviour
     public AudioClip[] pedrasSounds;
     public TextMeshProUGUI pedrasVolumeText;
 
+    [Header("Troféu")]
+    public AudioSource trofeuSource;
+    public AudioClip somTrofeu;
+    [Range(0f, 1f)] public float volumeTrofeu = 1f;
+
     [Header("Master")]
     public TextMeshProUGUI masterVolumeText;
 
@@ -105,6 +110,27 @@ public class AudioManagerMinigame1 : MonoBehaviour
         int random = Random.Range(0, pedrasSounds.Length);
         Debug.Log("[AudioManager] A tocar: " + pedrasSounds[random].name);
         pedrasSource.PlayOneShot(pedrasSounds[random]);
+    }
+
+    // ─────────────────────────────────────────────
+    // TROFÉU
+    // ─────────────────────────────────────────────
+
+    public void PlayTrophy()
+    {
+        if (somTrofeu == null)
+        {
+            Debug.LogWarning("[AudioManager] somTrofeu não está atribuído.", this);
+            return;
+        }
+
+        if (trofeuSource == null)
+        {
+            Debug.LogError("[AudioManager] trofeuSource não está atribuído.", this);
+            return;
+        }
+
+        trofeuSource.PlayOneShot(somTrofeu, volumeTrofeu);
     }
 
     // ─────────────────────────────────────────────

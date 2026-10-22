@@ -20,10 +20,23 @@ public class AudioManagerMinigame2 : MonoBehaviour
     public AudioClip[] walkingSounds;
     public TextMeshProUGUI walkingVolumeText;
 
-    [Header("Bolas")]
-    public AudioSource bolaSource;
-    public AudioClip[] bolaSounds;
-    public TextMeshProUGUI bolaVolumeText;
+    [Header("Alvos")]
+    [Tooltip("Usado apenas pelo mixer group (para o slider alvoVolume funcionar)")]
+    public AudioSource alvoSource;
+    public AudioClip[] alvoSounds;
+    public TextMeshProUGUI alvoVolumeText;
+    [Range(0f, 1f)] public float alvoBreakVolume = 1f;
+    [Tooltip("0 = som 2D, 1 = som 3D (some com a distância)")]
+    [Range(0f, 1f)] public float alvoSpatialBlend = 0.5f;
+    [Tooltip("Varia levemente o tom a cada quebra (0 = sem variação)")]
+    [Range(0f, 0.5f)] public float alvoPitchVariation = 0.1f;
+
+    [Header("Vitória")]
+    [Tooltip("Som tocado quando o jogador acerta todos os alvos.")]
+    public AudioClip somVitoria;
+    [Tooltip("AudioSource usado para tocar o som. Se vazio, é criado automaticamente.")]
+    public AudioSource vitoriaSource;
+    [Range(0f, 1f)] public float volumeVitoria = 1f;
 
     [Header("Master")]
     public TextMeshProUGUI masterVolumeText;
@@ -31,18 +44,17 @@ public class AudioManagerMinigame2 : MonoBehaviour
 
     private Coroutine brisaCoroutine;
 
-    //private void Awake()
-    //{
-    //    if (Instance == null)
-    //    {
-    //        Instance = this;
-    //        DontDestroyOnLoad(gameObject);
-    //    }
-    //    else
-    //    {
-    //        Destroy(gameObject);
-    //    }
-    //}
+    private void Awake()
+    {
+        // Manager por cena, então sem DontDestroyOnLoad
+        Instance = this;
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
+    }
 
     private void Start()
     {
@@ -74,20 +86,6 @@ public class AudioManagerMinigame2 : MonoBehaviour
     }
 
     // ─────────────────────────────────────────────
-    // PEDRAS
-    // ─────────────────────────────────────────────
-
-   // public void PlayRockGrab()
-   // {
-   //     if (pedrasSounds.Length == 0)
-   //         return;
-   //
-   //     int random = Random.Range(0, pedrasSounds.Length);
-   //
-   //     pedrasSource.PlayOneShot(pedrasSounds[random]);
-   // }
-
-    // ─────────────────────────────────────────────
     // WALKING
     // ─────────────────────────────────────────────
 
@@ -100,6 +98,63 @@ public class AudioManagerMinigame2 : MonoBehaviour
 
         walkingSource.clip = walkingSounds[random];
         walkingSource.Play();
+    }
+
+    // ─────────────────────────────────────────────
+    // ALVOS
+    // ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Called by WaterTarget when it breaks. Plays a random alvo sound at the given position.
+    /// </summary>
+    public void PlayAlvoBreak(Vector3 position)
+    {
+        if (alvoSounds == null || alvoSounds.Length == 0)
+            return;
+
+        AudioClip clip = alvoSounds[Random.Range(0, alvoSounds.Length)];
+        if (clip == null) return;
+
+        // Objeto temporário: continua tocando mesmo com o alvo voltando para o pool
+        GameObject go = new GameObject("AlvoBreakSound");
+        go.transform.position = position;
+
+        AudioSource src = go.AddComponent<AudioSource>();
+        src.clip = clip;
+        src.volume = alvoBreakVolume;
+        src.spatialBlend = alvoSpatialBlend;
+        src.pitch = 1f + Random.Range(-alvoPitchVariation, alvoPitchVariation);
+        src.playOnAwake = false;
+
+        // Usa o mesmo mixer group do alvoSource para o slider de volume funcionar
+        if (alvoSource != null)
+            src.outputAudioMixerGroup = alvoSource.outputAudioMixerGroup;
+
+        src.Play();
+
+        Destroy(go, clip.length / Mathf.Max(0.1f, src.pitch) + 0.1f);
+    }
+
+    // ─────────────────────────────────────────────
+    // VITÓRIA
+    // ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Called by MenuUI_Minigame2 when the player hits all targets.
+    /// </summary>
+    public void PlayVitoria()
+    {
+        if (somVitoria == null) return;
+
+        if (vitoriaSource == null)
+        {
+            vitoriaSource = gameObject.GetComponent<AudioSource>();
+            if (vitoriaSource == null)
+                vitoriaSource = gameObject.AddComponent<AudioSource>();
+            vitoriaSource.playOnAwake = false;
+        }
+
+        vitoriaSource.PlayOneShot(somVitoria, volumeVitoria);
     }
 
     // ─────────────────────────────────────────────
@@ -126,14 +181,14 @@ public class AudioManagerMinigame2 : MonoBehaviour
         walkingVolumeText.text = percentage + "%";
     }
 
-    public void SetBolaVolume(float value)
+    public void SetAlvoVolume(float value)
     {
-        audioMixer.SetFloat("bolaVolume", value);
+        audioMixer.SetFloat("alvoVolume", value);
     }
-    public void UpdatePedrasVolumeText(float value)
+    public void UpdateAlvoVolumeText(float value)
     {
         int percentage = Mathf.RoundToInt(Mathf.InverseLerp(-80f, 0f, value) * 100f);
-        bolaVolumeText.text = percentage + "%";
+        alvoVolumeText.text = percentage + "%";
     }
 
     public void SetMasterVolume(float value)
