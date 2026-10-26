@@ -1854,6 +1854,11 @@ MonoBehaviour:
   pedrasSource: {fileID: 0}
   pedrasSounds: []
   pedrasVolumeText: {fileID: 0}
+  trofeuSource: {fileID: 0}
+  somTrofeu: {fileID: 0}
+  volumeTrofeu: 1
+  fireworksSource: {fileID: 0}
+  fireworksSounds: []
   masterVolumeText: {fileID: 1607496831}
 --- !u!1 &134477890
 GameObject:
@@ -15972,8 +15977,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 176.61938, y: 22.357117}
-  m_SizeDelta: {x: 391.5073, y: 57.984985}
+  m_AnchoredPosition: {x: 192.3319, y: 25.675}
+  m_SizeDelta: {x: 360.0823, y: 51.35}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1995601990
 MonoBehaviour:
@@ -15995,7 +16000,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "Vers\xE3o: 0.9 Pr\xE9 Banca"
+  m_text: "Vers\xE3o: 1.0"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 479f6b99447d42d468c4e8a8e9ab92c7, type: 2}
   m_sharedMaterial: {fileID: -5556042687729440064, guid: 479f6b99447d42d468c4e8a8e9ab92c7, type: 2}
@@ -16029,7 +16034,7 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 2
+  m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0

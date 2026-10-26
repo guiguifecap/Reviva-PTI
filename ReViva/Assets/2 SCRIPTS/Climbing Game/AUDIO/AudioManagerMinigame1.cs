@@ -33,11 +33,14 @@ public class AudioManagerMinigame1 : MonoBehaviour
     [Header("Fogo de Artifício")]
     public AudioSource fireworksSource;
     public AudioClip[] fireworksSounds;
+    public Vector2 fireworksDelayRange = new Vector2(0.1f, 0.6f);
+    [Range(0f, 1f)] public float volumeFogos = 1f;
 
     [Header("Master")]
     public TextMeshProUGUI masterVolumeText;
 
     private Coroutine forestCoroutine;
+    private Coroutine fireworksCoroutine;
 
     // Reset the static when entering play mode / reloading the scene
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -141,7 +144,7 @@ public class AudioManagerMinigame1 : MonoBehaviour
     // FOGO DE ARTIFÍCIO
     // ─────────────────────────────────────────────
 
-    public void PlayFireworks()
+    public void PlayFireworks(float duration)
     {
         if (fireworksSounds == null || fireworksSounds.Length == 0)
         {
@@ -155,8 +158,38 @@ public class AudioManagerMinigame1 : MonoBehaviour
             return;
         }
 
-        int random = Random.Range(0, fireworksSounds.Length);
-        fireworksSource.PlayOneShot(fireworksSounds[random]);
+        if (fireworksCoroutine != null)
+            StopCoroutine(fireworksCoroutine);
+
+        fireworksCoroutine = StartCoroutine(FireworksRoutine(duration));
+    }
+
+    private IEnumerator FireworksRoutine(float duration)
+    {
+        float endTime = Time.time + duration;
+
+        while (Time.time < endTime)
+        {
+            int random = Random.Range(0, fireworksSounds.Length);
+            fireworksSource.PlayOneShot(fireworksSounds[random], volumeFogos);
+
+            yield return new WaitForSeconds(Random.Range(fireworksDelayRange.x, fireworksDelayRange.y));
+        }
+
+        fireworksCoroutine = null;
+        fireworksSource.Stop(); // cuts any sound still ringing out
+    }
+
+    public void StopFireworks()
+    {
+        if (fireworksCoroutine != null)
+        {
+            StopCoroutine(fireworksCoroutine);
+            fireworksCoroutine = null;
+        }
+
+        if (fireworksSource != null)
+            fireworksSource.Stop();
     }
 
     // ─────────────────────────────────────────────
