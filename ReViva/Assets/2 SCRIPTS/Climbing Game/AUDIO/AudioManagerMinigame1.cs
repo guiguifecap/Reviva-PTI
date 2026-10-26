@@ -30,6 +30,10 @@ public class AudioManagerMinigame1 : MonoBehaviour
     public AudioClip somTrofeu;
     [Range(0f, 1f)] public float volumeTrofeu = 1f;
 
+    [Header("Fogo de Artifício")]
+    public AudioSource fireworksSource;
+    public AudioClip[] fireworksSounds;
+
     [Header("Master")]
     public TextMeshProUGUI masterVolumeText;
 
@@ -131,6 +135,28 @@ public class AudioManagerMinigame1 : MonoBehaviour
         }
 
         trofeuSource.PlayOneShot(somTrofeu, volumeTrofeu);
+    }
+
+    // ─────────────────────────────────────────────
+    // FOGO DE ARTIFÍCIO
+    // ─────────────────────────────────────────────
+
+    public void PlayFireworks()
+    {
+        if (fireworksSounds == null || fireworksSounds.Length == 0)
+        {
+            Debug.LogWarning("[AudioManager] fireworksSounds está vazio.", this);
+            return;
+        }
+
+        if (fireworksSource == null)
+        {
+            Debug.LogError("[AudioManager] fireworksSource não está atribuído.", this);
+            return;
+        }
+
+        int random = Random.Range(0, fireworksSounds.Length);
+        fireworksSource.PlayOneShot(fireworksSounds[random]);
     }
 
     // ─────────────────────────────────────────────

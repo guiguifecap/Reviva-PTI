@@ -37,6 +37,9 @@ public class AudioManagerMinigame2 : MonoBehaviour
     [Tooltip("AudioSource usado para tocar o som. Se vazio, é criado automaticamente.")]
     public AudioSource vitoriaSource;
     [Range(0f, 1f)] public float volumeVitoria = 1f;
+    public AudioClip somFogos;
+    public AudioSource fogosSource;
+    [Range(0f, 1f)] public float volumeFogos = 1f;
 
     [Header("Master")]
     public TextMeshProUGUI masterVolumeText;
@@ -157,6 +160,20 @@ public class AudioManagerMinigame2 : MonoBehaviour
         vitoriaSource.PlayOneShot(somVitoria, volumeVitoria);
     }
 
+    public void PlayFireworks()
+    {
+        if (somFogos == null) return;
+
+        if (fogosSource == null)
+        {
+            fogosSource = gameObject.GetComponent<AudioSource>();
+            if (fogosSource == null)
+                fogosSource = gameObject.AddComponent<AudioSource>();
+            fogosSource.playOnAwake = false;
+        }
+
+        fogosSource.PlayOneShot(somFogos, volumeFogos);
+    }
     // ─────────────────────────────────────────────
     // VOLUME
     // ─────────────────────────────────────────────

@@ -327,6 +327,7 @@ public class MenuUI_Minigame2 : MonoBehaviour
 
         if (AudioManagerMinigame2.Instance != null)
             AudioManagerMinigame2.Instance.PlayVitoria();
+            AudioManagerMinigame2.Instance.PlayFireworks();
     }
 
     IEnumerator DesativarFogosDepois(float segundos)

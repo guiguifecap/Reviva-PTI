@@ -4,7 +4,7 @@ public class trofeu : MonoBehaviour
 {
     public GameObject fogos;
 
-    private bool jaAtivado = false;
+    public bool jaAtivado = false;
 
     private void OnCollisionEnter(Collision collision)
     {
@@ -18,7 +18,11 @@ public class trofeu : MonoBehaviour
                 fogos.SetActive(true);
 
             if (AudioManagerMinigame1.Instance != null)
+            {
                 AudioManagerMinigame1.Instance.PlayTrophy();
+                AudioManagerMinigame1.Instance.PlayFireworks();
+            }
+
         }
     }
 }
