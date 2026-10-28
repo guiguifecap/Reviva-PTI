@@ -33,14 +33,13 @@ public class AudioManagerMinigame1 : MonoBehaviour
     [Header("Fogo de Artifício")]
     public AudioSource fireworksSource;
     public AudioClip[] fireworksSounds;
-    public Vector2 fireworksDelayRange = new Vector2(0.1f, 0.6f);
-    [Range(0f, 1f)] public float volumeFogos = 1f;
 
     [Header("Master")]
     public TextMeshProUGUI masterVolumeText;
 
     private Coroutine forestCoroutine;
     private Coroutine fireworksCoroutine;
+    private float fireworksBaseVolume = 1f;
 
     // Reset the static when entering play mode / reloading the scene
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -69,6 +68,9 @@ public class AudioManagerMinigame1 : MonoBehaviour
 
     private void Start()
     {
+        if (fireworksSource != null)
+            fireworksBaseVolume = fireworksSource.volume;
+
         forestCoroutine = StartCoroutine(ForestSoundsLoop());
     }
 
@@ -144,7 +146,7 @@ public class AudioManagerMinigame1 : MonoBehaviour
     // FOGO DE ARTIFÍCIO
     // ─────────────────────────────────────────────
 
-    public void PlayFireworks(float duration)
+    public void PlayFireworks(float duration, float fadeDuration = 1.5f)
     {
         if (fireworksSounds == null || fireworksSounds.Length == 0)
         {
@@ -161,23 +163,38 @@ public class AudioManagerMinigame1 : MonoBehaviour
         if (fireworksCoroutine != null)
             StopCoroutine(fireworksCoroutine);
 
-        fireworksCoroutine = StartCoroutine(FireworksRoutine(duration));
+        fireworksCoroutine = StartCoroutine(FireworksRoutine(duration, fadeDuration));
     }
 
-    private IEnumerator FireworksRoutine(float duration)
+    private IEnumerator FireworksRoutine(float duration, float fadeDuration)
     {
         float endTime = Time.time + duration;
+        float fadeStart = endTime - Mathf.Min(fadeDuration, duration);
+
+        fireworksSource.loop = false;
+        fireworksSource.volume = fireworksBaseVolume;
 
         while (Time.time < endTime)
         {
-            int random = Random.Range(0, fireworksSounds.Length);
-            fireworksSource.PlayOneShot(fireworksSounds[random], volumeFogos);
+            // plays one clip at a time: when it ends, the next one starts
+            if (!fireworksSource.isPlaying)
+            {
+                int random = Random.Range(0, fireworksSounds.Length);
+                fireworksSource.clip = fireworksSounds[random];
+                fireworksSource.Play();
+            }
 
-            yield return new WaitForSeconds(Random.Range(fireworksDelayRange.x, fireworksDelayRange.y));
+            // fade out near the end
+            if (Time.time >= fadeStart)
+            {
+                float t = Mathf.InverseLerp(fadeStart, endTime, Time.time);
+                fireworksSource.volume = Mathf.Lerp(fireworksBaseVolume, 0f, t);
+            }
+
+            yield return null;
         }
 
-        fireworksCoroutine = null;
-        fireworksSource.Stop(); // cuts any sound still ringing out
+        StopFireworks();
     }
 
     public void StopFireworks()
@@ -189,7 +206,10 @@ public class AudioManagerMinigame1 : MonoBehaviour
         }
 
         if (fireworksSource != null)
+        {
             fireworksSource.Stop();
+            fireworksSource.volume = fireworksBaseVolume; // reset for next time
+        }
     }
 
     // ─────────────────────────────────────────────

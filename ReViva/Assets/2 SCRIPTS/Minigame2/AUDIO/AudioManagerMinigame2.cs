@@ -37,7 +37,11 @@ public class AudioManagerMinigame2 : MonoBehaviour
     [Tooltip("AudioSource usado para tocar o som. Se vazio, é criado automaticamente.")]
     public AudioSource vitoriaSource;
     [Range(0f, 1f)] public float volumeVitoria = 1f;
-    public AudioClip somFogos;
+
+    [Header("Fogo de Artifício")]
+    [Tooltip("Sons de fogos: tocam um de cada vez, em sequência, até o tempo acabar.")]
+    public AudioClip[] somFogos;
+    [Tooltip("AudioSource dos fogos. Se vazio, é criado um só para os fogos.")]
     public AudioSource fogosSource;
     [Range(0f, 1f)] public float volumeFogos = 1f;
 
@@ -46,6 +50,7 @@ public class AudioManagerMinigame2 : MonoBehaviour
 
 
     private Coroutine brisaCoroutine;
+    private Coroutine fogosCoroutine;
 
     private void Awake()
     {
@@ -160,20 +165,86 @@ public class AudioManagerMinigame2 : MonoBehaviour
         vitoriaSource.PlayOneShot(somVitoria, volumeVitoria);
     }
 
-    public void PlayFireworks()
+    // ─────────────────────────────────────────────
+    // FOGO DE ARTIFÍCIO
+    // ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Plays the fireworks sounds one at a time (no overlap) for 'duration' seconds,
+    /// fading out during the last 'fadeDuration' seconds.
+    /// duration &lt;= 0 = keeps looping until StopFireworks() is called.
+    /// </summary>
+    public void PlayFireworks(float duration, float fadeDuration = 1.5f)
     {
-        if (somFogos == null) return;
+        if (somFogos == null || somFogos.Length == 0)
+        {
+            Debug.LogWarning("[AudioManager2] somFogos está vazio.", this);
+            return;
+        }
 
         if (fogosSource == null)
         {
-            fogosSource = gameObject.GetComponent<AudioSource>();
-            if (fogosSource == null)
-                fogosSource = gameObject.AddComponent<AudioSource>();
+            // Source próprio (não reaproveita o da vitória, senão os volumes se misturam)
+            fogosSource = gameObject.AddComponent<AudioSource>();
             fogosSource.playOnAwake = false;
         }
 
-        fogosSource.PlayOneShot(somFogos, volumeFogos);
+        if (fogosCoroutine != null)
+            StopCoroutine(fogosCoroutine);
+
+        fogosCoroutine = StartCoroutine(FireworksRoutine(duration, fadeDuration));
     }
+
+    private IEnumerator FireworksRoutine(float duration, float fadeDuration)
+    {
+        bool temTempo = duration > 0f;
+        float endTime = Time.time + duration;
+        float fadeStart = endTime - Mathf.Min(fadeDuration, duration);
+
+        fogosSource.loop = false;
+        fogosSource.volume = volumeFogos;
+
+        while (!temTempo || Time.time < endTime)
+        {
+            // toca um clip de cada vez: quando termina, começa o próximo
+            if (!fogosSource.isPlaying)
+            {
+                int random = Random.Range(0, somFogos.Length);
+                if (somFogos[random] != null)
+                {
+                    fogosSource.clip = somFogos[random];
+                    fogosSource.Play();
+                }
+            }
+
+            // fade out perto do fim
+            if (temTempo && Time.time >= fadeStart)
+            {
+                float t = Mathf.InverseLerp(fadeStart, endTime, Time.time);
+                fogosSource.volume = Mathf.Lerp(volumeFogos, 0f, t);
+            }
+
+            yield return null;
+        }
+
+        StopFireworks();
+    }
+
+    public void StopFireworks()
+    {
+        if (fogosCoroutine != null)
+        {
+            StopCoroutine(fogosCoroutine);
+            fogosCoroutine = null;
+        }
+
+        if (fogosSource != null)
+        {
+            fogosSource.Stop();
+            fogosSource.volume = volumeFogos; // reseta para a próxima vez
+        }
+    }
+
     // ─────────────────────────────────────────────
     // VOLUME
     // ─────────────────────────────────────────────

@@ -12,6 +12,8 @@ public class MenuUI_Minigame2 : MonoBehaviour
     [Header("Vitória (Fogos)")]
     [Tooltip("Por quantos segundos os fogos ficam ativos (0 = ficam até iniciar outro tratamento).")]
     public float duracaoFogos = 5f;
+    [Tooltip("Nos últimos segundos, o som faz fade out e as partículas param de sair.")]
+    public float fadeOutFogos = 1.5f;
     public GameObject fogos;
     private Coroutine fogosRoutine;
 
@@ -315,25 +317,50 @@ public class MenuUI_Minigame2 : MonoBehaviour
     // ── Vitória: fogos + áudio (o som fica no AudioManager) ──
     void Comemorar()
     {
+        if (fogosRoutine != null)
+        {
+            StopCoroutine(fogosRoutine);
+            fogosRoutine = null;
+        }
+
         if (fogos != null)
         {
             fogos.SetActive(false); // reinicia o efeito caso já estivesse ativo
             fogos.SetActive(true);
 
-            if (fogosRoutine != null) StopCoroutine(fogosRoutine);
             if (duracaoFogos > 0f)
                 fogosRoutine = StartCoroutine(DesativarFogosDepois(duracaoFogos));
         }
 
         if (AudioManagerMinigame2.Instance != null)
+        {
             AudioManagerMinigame2.Instance.PlayVitoria();
-            AudioManagerMinigame2.Instance.PlayFireworks();
+            AudioManagerMinigame2.Instance.PlayFireworks(duracaoFogos, fadeOutFogos);
+        }
     }
 
     IEnumerator DesativarFogosDepois(float segundos)
     {
-        yield return new WaitForSeconds(segundos);
+        float fade = Mathf.Min(fadeOutFogos, segundos);
+
+        // segue normal até o início do fade
+        yield return new WaitForSeconds(segundos - fade);
+
+        // para de soltar partículas novas, as que já saíram terminam naturalmente
+        if (fogos != null)
+        {
+            foreach (var ps in fogos.GetComponentsInChildren<ParticleSystem>())
+                ps.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+        }
+
+        // o áudio faz o fade out nessa mesma janela
+        yield return new WaitForSeconds(fade);
+
         if (fogos != null) fogos.SetActive(false);
+
+        if (AudioManagerMinigame2.Instance != null)
+            AudioManagerMinigame2.Instance.StopFireworks();
+
         fogosRoutine = null;
     }
 
@@ -345,6 +372,9 @@ public class MenuUI_Minigame2 : MonoBehaviour
             fogosRoutine = null;
         }
         if (fogos != null) fogos.SetActive(false);
+
+        if (AudioManagerMinigame2.Instance != null)
+            AudioManagerMinigame2.Instance.StopFireworks();
     }
 
     // ── Acertos ─────────────────────────────────────────────

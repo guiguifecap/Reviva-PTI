@@ -5,6 +5,7 @@ public class trofeu : MonoBehaviour
 {
     public GameObject fogos;
     public float duracaoFogos = 8f;
+    public float fadeOutDuracao = 1.5f;
 
     public bool jaAtivado = false;
 
@@ -22,7 +23,7 @@ public class trofeu : MonoBehaviour
             if (AudioManagerMinigame1.Instance != null)
             {
                 AudioManagerMinigame1.Instance.PlayTrophy();
-                AudioManagerMinigame1.Instance.PlayFireworks(duracaoFogos);
+                AudioManagerMinigame1.Instance.PlayFireworks(duracaoFogos, fadeOutDuracao);
             }
 
             StartCoroutine(StopFogosDepois());
@@ -31,7 +32,20 @@ public class trofeu : MonoBehaviour
 
     private IEnumerator StopFogosDepois()
     {
-        yield return new WaitForSeconds(duracaoFogos);
+        float fade = Mathf.Min(fadeOutDuracao, duracaoFogos);
+
+        // keep going until the fade starts
+        yield return new WaitForSeconds(duracaoFogos - fade);
+
+        // stop emitting new particles, existing ones finish naturally
+        if (fogos != null)
+        {
+            foreach (var ps in fogos.GetComponentsInChildren<ParticleSystem>())
+                ps.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+        }
+
+        // audio fades during this same window
+        yield return new WaitForSeconds(fade);
 
         if (fogos != null)
             fogos.SetActive(false);
