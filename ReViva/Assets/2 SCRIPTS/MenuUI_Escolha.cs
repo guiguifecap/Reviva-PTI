@@ -36,6 +36,12 @@ public class MenuUI_Escolha : MonoBehaviour
     private Vector2 centerPos;
     private Vector2 rightPos;
 
+    [Header("Loading UI e Cenas")]
+    public GameObject loadingUI;
+    public string CenaMinigame1;
+    public string CenaMinigame2;
+
+
     private bool isAnimating;
 
     private void Start()
@@ -310,6 +316,36 @@ public class MenuUI_Escolha : MonoBehaviour
 
     public void ClimbingGame()
     {
-        SceneManager.LoadScene("TesteFase1");
+        StartCoroutine(CarregarMinigame1());
+    }
+    public void Minigame2()
+    {
+        StartCoroutine(CarregarMinigame2());
+    }
+
+    IEnumerator CarregarMinigame1()
+    {
+        if (loadingUI != null)
+            loadingUI.SetActive(true);
+
+        AsyncOperation operation = SceneManager.LoadSceneAsync(CenaMinigame1);
+
+        while (!operation.isDone)
+        {
+            yield return null;
+        }
+    }
+
+    IEnumerator CarregarMinigame2()
+    {
+        if (loadingUI != null)
+            loadingUI.SetActive(true);
+
+        AsyncOperation operation = SceneManager.LoadSceneAsync(CenaMinigame2);
+
+        while (!operation.isDone)
+        {
+            yield return null;
+        }
     }
 }

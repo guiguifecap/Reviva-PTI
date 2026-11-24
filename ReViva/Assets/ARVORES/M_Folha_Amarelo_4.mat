@@ -35,13 +35,13 @@ Material:
     - _CanopyCenterHeight: 1.5
     - _ColorVariation: 0.3
     - _ColorVariationScale: 1.5
-    - _FakeNormalBlend: 0.85
-    - _HighlightSharpness: 0.5
-    - _HighlightStrength: 0.5
+    - _FakeNormalBlend: 0.6
+    - _HighlightSharpness: 0.389
+    - _HighlightStrength: 0.398
     - _LightColorInfluence: 0.6
     - _ShadowSharpness: 0.5
-    - _ShadowStrength: 0.6
-    - _ZGradientFactor: 0.04
+    - _ShadowStrength: 1
+    - _ZGradientFactor: 0
     - _ZGradientPos: 0.3
     m_Colors:
     - _HighlightColor: {r: 0.97999996, g: 0.82, b: 0.19999996, a: 1}

@@ -35,7 +35,7 @@ Material:
     - _CanopyCenterHeight: 1.5
     - _ColorVariation: 0.3
     - _ColorVariationScale: 1.5
-    - _FakeNormalBlend: 0.85
+    - _FakeNormalBlend: 0.6
     - _HighlightSharpness: 0.5
     - _HighlightStrength: 0.5
     - _LightColorInfluence: 0.6

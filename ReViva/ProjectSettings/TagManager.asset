@@ -8,6 +8,9 @@ TagManager:
   - climbable
   - Pedra
   - Mao
+  - Alvo
+  - Bola
+  - Casa
   layers:
   - Default
   - TransparentFX
@@ -20,7 +23,7 @@ TagManager:
   - Player
   - "M\xE3o"
   - MenuPC
-  - camadaPedra
+  - grama
   - Montanha
   - 'TelaCalibragem '
   - 
